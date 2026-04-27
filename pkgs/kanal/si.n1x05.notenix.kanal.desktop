@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OS Update Channel
+Comment=Set OS update channel
+Exec=kanal
+Icon=software-update-available-symbolic
+Terminal=false
+Type=Application
+Categories=System;Settings;GNOME;
+Keywords=update;channel;stable;unstable;nixos;kanal;
+StartupNotify=true
