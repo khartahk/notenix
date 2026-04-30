@@ -23,6 +23,7 @@ let
 
   desktopLiteOptions = {
     notenix.desktop.cinnamon.enable     = true;
+    notenix.applications.flatpak.enable = true;
     notenix.hardware.sound.enable       = true;
     notenix.hardware.bluetooth.enable   = true;
     notenix.hardware.printing.enable    = true;
@@ -38,7 +39,7 @@ in
       enabled by default.
 
       desktop       — full GNOME desktop with Flatpak, sound, bluetooth, printing
-      desktop-lite  — Cinnamon desktop with sound, bluetooth, printing (no Flatpak)
+      desktop-lite  — Cinnamon desktop with Flatpak, sound, bluetooth, printing
       minimal       — headless / server: no desktop, no Flatpak, only essentials
     '';
   };

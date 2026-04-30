@@ -53,96 +53,12 @@
       # ---------------------------------------------------------------------------
       nixosConfigurations =
         let
-          # Shared inline overrides for both VM configs — replaces the
-          # notenix-install-overrides.nix file that the installer writes on a
-          # real machine.
-          vmOverrides = {
-            notenix.system.install.hostName        = lib.mkForce "notenix-vm";
-            notenix.system.install.userName        = lib.mkForce "user";
-            notenix.system.install.userDescription = lib.mkForce "Test User";
-            notenix.system.install.timeZone        = lib.mkForce "UTC";
-            notenix.system.install.locale          = lib.mkForce "en_US.UTF-8";
-            notenix.system.install.keyboardLayout  = lib.mkForce "si";
-            # VMs have no bootloader — switch activates immediately without reboot
-            notenix.system.autoupgrade.operation   = lib.mkForce "switch";
-            # Enable desktop preset so GNOME is present in the VM
-            notenix.preset                         = lib.mkForce "desktop";
-
-            # Pre-set a password so the VM is usable without extra steps
-            users.users.user.initialPassword = "user";
-          };
-          # Base module list for the real-machine nixosConfiguration
           baseModules = [
             ./modules
             disko.nixosModules.disko
             ./hosts/notenix/configuration.nix
             ./hosts/notenix/disk.nix
             { environment.systemPackages = [ self.packages.${system}.kanal ]; }
-          ];
-          # Base module list shared by all VM configs (no disko/disk)
-          vmBaseModules = [
-            ./modules
-            ./hosts/notenix/configuration.nix
-            "${nixpkgs}/nixos/modules/virtualisation/qemu-vm.nix"
-            vmOverrides
-            { environment.systemPackages = [ self.packages.${system}.kanal ]; }
-            {
-              virtualisation.diskSize    = 16384;
-              virtualisation.memorySize  = 4096;   # GNOME needs ≥ 2 GB
-              virtualisation.cores       = 2;
-              virtualisation.graphics    = true;   # enable QEMU display output
-              virtualisation.resolution  = { x = 1280; y = 800; };
-              # Auto-login to GDM so the desktop appears immediately
-              services.displayManager.autoLogin.enable = true;
-              services.displayManager.autoLogin.user   = "user";
-              # Disable screen lock — no password needed in the test VM
-              programs.dconf.profiles.user.databases = lib.mkAfter [
-                {
-                  lockAll  = false;
-                  settings."org/gnome/desktop/screensaver".lock-enabled = false;
-                  settings."org/gnome/desktop/session".idle-delay = lib.gvariant.mkUint32 0;
-                }
-              ];
-              # Pre-seed /etc/nixos/machine.nix and flake.nix so kanal has something to edit.
-              # Uses an activation script (not environment.etc) so the files are
-              # real writable files, not read-only Nix store symlinks.
-              system.activationScripts.notenix-machine = {
-                text = ''
-                  mkdir -p /etc/nixos
-                  dest=/etc/nixos/machine.nix
-                  if [ ! -e "$dest" ]; then
-                    cat > "$dest" << 'EOF'
-{ lib, ... }: {
-  notenix.preset                         = lib.mkForce "desktop";
-  notenix.system.autoupgrade.flakeRepo   = lib.mkForce "path:/etc/nixos";
-  notenix.system.autoupgrade.hostName    = lib.mkForce "notenix-vm";
-  notenix.system.autoupgrade.operation   = lib.mkForce "switch";
-  notenix.system.install.hostName        = lib.mkForce "notenix-vm";
-  notenix.system.install.userName        = lib.mkForce "user";
-  notenix.system.install.userDescription = lib.mkForce "Test User";
-  notenix.system.install.timeZone        = lib.mkForce "UTC";
-  notenix.system.install.locale          = lib.mkForce "en_US.UTF-8";
-  notenix.system.install.keyboardLayout  = lib.mkForce "si";
-  system.stateVersion                    = "25.11";
-}
-EOF
-                  fi
-                  flake=/etc/nixos/flake.nix
-                  if [ ! -e "$flake" ]; then
-                    cat > "$flake" << 'EOF'
-# /etc/nixos/flake.nix — machine entry point (seeded by VM).
-# inputs.notenix.url is rewritten by kanal to switch branches.
-{
-  inputs.notenix.url = "github:n1x05/notenix";
-  outputs = { notenix, ... }:
-    notenix.lib.mkMachineSystem { modules = [ ./machine.nix ]; };
-}
-EOF
-                  fi
-                '';
-                deps = [];
-              };
-            }
           ];
         in
         {
@@ -155,9 +71,9 @@ EOF
 
           # Full GNOME VM: requires a display (QEMU GTK or VNC)
           # Run with:  nix run .#vm
-          vm = lib.nixosSystem {
-            inherit system;
-            modules = vmBaseModules;
+          vm = import ./vm.nix {
+            inherit lib nixpkgs system;
+            kanal = self.packages.${system}.kanal;
           };
         };
 
