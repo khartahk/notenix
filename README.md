@@ -55,3 +55,5 @@ sudo nixos-rebuild switch --rollback
 ```
 
 Or choose the previous entry from the boot menu at startup.
+
+Assisted-by: claude-sonnet:4.6
