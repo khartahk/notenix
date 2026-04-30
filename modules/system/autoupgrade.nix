@@ -61,7 +61,7 @@ in
     flakeRepo = mkOption {
       type    = types.str;
       default = "github:n1x05/notenix";
-      example = "github:youruser/yourrepo";
+      example = "path:/etc/nixos";
       description = "Flake URL of the NixOS configuration repository.";
     };
 
@@ -95,7 +95,7 @@ in
 
     flags = mkOption {
       type    = types.listOf types.str;
-      default = [ "--refresh" ];
+      default = [];
       description = "Additional flags passed to nixos-rebuild.";
     };
 
@@ -112,9 +112,7 @@ in
   config = mkIf cfg.enable {
     system.autoUpgrade = {
       enable     = true;
-      flake      = if cfg.hostName != null
-                   then "${cfg.flakeRepo}#${cfg.hostName}"
-                   else "${cfg.flakeRepo}#default";
+      flake      = "${cfg.flakeRepo}#${if cfg.hostName != null then cfg.hostName else config.networking.hostName}";
       dates              = cfg.dates;
       randomizedDelaySec = cfg.randomizedDelaySec;
       allowReboot        = cfg.allowReboot;

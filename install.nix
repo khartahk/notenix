@@ -146,22 +146,39 @@ pkgs.writeShellApplication {
       --yesno "$MSG" 20 65 || { clear; echo "Cancelled."; exit 1; }
     clear
 
-    # ── 9. Write install-time overrides ──────────────────────────────
+    # ── 9. Write machine-specific flake and config ───────────────────
     mkdir -p "$TMP/etc/nixos"
-    cat > "$TMP/etc/nixos/notenix-install-overrides.nix" <<EOF
-# notenix machine configuration — written by the installer.
-# Lives at /etc/nixos/notenix-install-overrides.nix on the installed
-# system and is imported on every nixos-rebuild / auto-update.
-# Edit this file directly to change hostname, user, locale, etc.
-# without touching the upstream notenix repo.
+
+    # flake.nix — points to upstream notenix; kanal only ever rewrites
+    # the inputs.notenix.url line to switch branches.
+    cat > "$TMP/etc/nixos/flake.nix" <<'FLAKE'
+# /etc/nixos/flake.nix — machine entry point.
+# inputs.notenix.url is rewritten by kanal to switch branches.
+# Edit machine.nix for machine-specific settings.
+{
+  inputs.notenix.url = "github:n1x05/notenix";
+  outputs = { notenix, ... }:
+    notenix.lib.mkMachineSystem { modules = [ ./machine.nix ]; };
+}
+FLAKE
+
+    # machine.nix — NixOS module with machine-specific settings.
+    # Written once by the installer; kanal only rewrites notenix.preset.
+    cat > "$TMP/etc/nixos/machine.nix" <<EOF
+# /etc/nixos/machine.nix — machine-specific NixOS configuration.
+# Written by the notenix installer. Safe to edit manually.
+# kanal rewrites notenix.preset when you change profile in the app.
 { lib, ... }: {
   notenix.preset                         = lib.mkForce "$PRESET";
+  notenix.system.autoupgrade.flakeRepo   = lib.mkForce "path:/etc/nixos";
+  notenix.system.autoupgrade.hostName    = lib.mkForce "notenix";
   notenix.system.install.hostName        = lib.mkForce "$HOSTNAME";
   notenix.system.install.userName        = lib.mkForce "$USERNAME";
   notenix.system.install.userDescription = lib.mkForce "$USERDESC";
   notenix.system.install.timeZone        = lib.mkForce "$TIMEZONE";
   notenix.system.install.locale          = lib.mkForce "$LOCALE";
   notenix.system.install.keyboardLayout  = lib.mkForce "$KBLAYOUT";
+  system.stateVersion                    = "25.11";
 }
 EOF
 

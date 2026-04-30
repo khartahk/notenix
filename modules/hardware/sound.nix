@@ -9,7 +9,7 @@ in
   options.notenix.hardware.sound = {
     enable = lib.mkOption {
       type    = lib.types.bool;
-      default = true;
+      default = false;
       description = "Sound support.";
     };
 

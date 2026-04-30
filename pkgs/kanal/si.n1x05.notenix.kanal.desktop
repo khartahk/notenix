@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=OS Update Channel
-Comment=Set OS update channel
+Name=NoteNix Settings
+Comment=Configure NoteNix capabilities and update channels
 Exec=kanal
 Icon=software-update-available-symbolic
 Terminal=false

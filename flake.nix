@@ -5,9 +5,11 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     disko.url   = "github:nix-community/disko/latest";
     disko.inputs.nixpkgs.follows = "nixpkgs";
+    kanal.url   = "path:pkgs/kanal";
+    kanal.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, disko, ... }:
+  outputs = { self, nixpkgs, disko, kanal, ... }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -18,6 +20,29 @@
       # ---------------------------------------------------------------------------
       nixosModules = {
         default = import ./modules;
+      };
+
+      # ---------------------------------------------------------------------------
+      # Metadata consumed by kanal — defined in pkgs/kanal/flake.nix
+      # ---------------------------------------------------------------------------
+      lib.kanal = kanal.lib.kanal;
+
+      # ---------------------------------------------------------------------------
+      # lib.mkMachineSystem — used by /etc/nixos/flake.nix on real machines.
+      # Takes { modules } and returns a full nixosSystem with all notenix
+      # modules, disko, disk layout, and kanal pre-installed.
+      # Machine-specific settings (preset, hostname, user, etc.) come from
+      # the caller's modules list (typically /etc/nixos/machine.nix).
+      # ---------------------------------------------------------------------------
+      lib.mkMachineSystem = { modules ? [] }: lib.nixosSystem {
+        inherit system;
+        modules = [
+          self.nixosModules.default
+          disko.nixosModules.disko
+          ./hosts/notenix/configuration.nix
+          ./hosts/notenix/disk.nix
+          { environment.systemPackages = [ self.packages.${system}.kanal ]; }
+        ] ++ modules;
       };
 
       # ---------------------------------------------------------------------------
@@ -40,16 +65,19 @@
             notenix.system.install.keyboardLayout  = lib.mkForce "si";
             # VMs have no bootloader — switch activates immediately without reboot
             notenix.system.autoupgrade.operation   = lib.mkForce "switch";
+            # Enable desktop preset so GNOME is present in the VM
+            notenix.preset                         = lib.mkForce "desktop";
 
             # Pre-set a password so the VM is usable without extra steps
             users.users.user.initialPassword = "user";
           };
-          # Base module list shared by notenix + ssh
+          # Base module list for the real-machine nixosConfiguration
           baseModules = [
             ./modules
             disko.nixosModules.disko
             ./hosts/notenix/configuration.nix
             ./hosts/notenix/disk.nix
+            { environment.systemPackages = [ self.packages.${system}.kanal ]; }
           ];
           # Base module list shared by all VM configs (no disko/disk)
           vmBaseModules = [
@@ -57,6 +85,7 @@
             ./hosts/notenix/configuration.nix
             "${nixpkgs}/nixos/modules/virtualisation/qemu-vm.nix"
             vmOverrides
+            { environment.systemPackages = [ self.packages.${system}.kanal ]; }
             {
               virtualisation.diskSize    = 16384;
               virtualisation.memorySize  = 4096;   # GNOME needs ≥ 2 GB
@@ -74,22 +103,19 @@
                   settings."org/gnome/desktop/session".idle-delay = lib.gvariant.mkUint32 0;
                 }
               ];
-              # kanal: GUI (kanal) + CLI (kanalctl) for channel switching
-              environment.systemPackages = [
-                self.packages.${system}.kanal
-              ];
-              # Pre-seed the overrides file so kanal has something to edit.
-              # Uses an activation script (not environment.etc) so the file is a
-              # real writable file, not a read-only Nix store symlink.
-              system.activationScripts.notenix-overrides = {
+              # Pre-seed /etc/nixos/machine.nix and flake.nix so kanal has something to edit.
+              # Uses an activation script (not environment.etc) so the files are
+              # real writable files, not read-only Nix store symlinks.
+              system.activationScripts.notenix-machine = {
                 text = ''
-                  dest=/etc/nixos/notenix-install-overrides.nix
+                  mkdir -p /etc/nixos
+                  dest=/etc/nixos/machine.nix
                   if [ ! -e "$dest" ]; then
-                    mkdir -p /etc/nixos
                     cat > "$dest" << 'EOF'
-# notenix machine configuration — written by the installer.
 { lib, ... }: {
   notenix.preset                         = lib.mkForce "desktop";
+  notenix.system.autoupgrade.flakeRepo   = lib.mkForce "path:/etc/nixos";
+  notenix.system.autoupgrade.hostName    = lib.mkForce "notenix-vm";
   notenix.system.autoupgrade.operation   = lib.mkForce "switch";
   notenix.system.install.hostName        = lib.mkForce "notenix-vm";
   notenix.system.install.userName        = lib.mkForce "user";
@@ -97,6 +123,19 @@
   notenix.system.install.timeZone        = lib.mkForce "UTC";
   notenix.system.install.locale          = lib.mkForce "en_US.UTF-8";
   notenix.system.install.keyboardLayout  = lib.mkForce "si";
+  system.stateVersion                    = "25.11";
+}
+EOF
+                  fi
+                  flake=/etc/nixos/flake.nix
+                  if [ ! -e "$flake" ]; then
+                    cat > "$flake" << 'EOF'
+# /etc/nixos/flake.nix — machine entry point (seeded by VM).
+# inputs.notenix.url is rewritten by kanal to switch branches.
+{
+  inputs.notenix.url = "github:n1x05/notenix";
+  outputs = { notenix, ... }:
+    notenix.lib.mkMachineSystem { modules = [ ./machine.nix ]; };
 }
 EOF
                   fi
@@ -111,23 +150,8 @@ EOF
             inherit system;
             modules = baseModules;
           };
-
           # Alias so `--flake .` works without specifying a hostname
           default = self.nixosConfigurations.notenix;
-
-          # Like notenix but with SSH enabled — useful for remote deployment testing
-          ssh = lib.nixosSystem {
-            inherit system;
-            modules = baseModules ++ [
-              {
-                services.openssh = {
-                  enable                          = true;
-                  settings.PasswordAuthentication = true;
-                  settings.PermitRootLogin        = "no";
-                };
-              }
-            ];
-          };
 
           # Full GNOME VM: requires a display (QEMU GTK or VNC)
           # Run with:  nix run .#vm
@@ -143,33 +167,45 @@ EOF
       #   nix run            — alias for .#install
       #   nix run .#vm       — full GNOME desktop VM (needs QEMU display)
       # ---------------------------------------------------------------------------
-      packages.${system} = let
-        pkgs = nixpkgs.legacyPackages.${system};
-        kanal = pkgs.python3Packages.buildPythonApplication {
-          pname   = "kanal";
-          version = "0.1.0";
-          src     = ./pkgs/kanal;
-          format  = "pyproject";
-          nativeBuildInputs = with pkgs; [
-            python3Packages.setuptools
-            wrapGAppsHook4
-          ];
-          buildInputs = with pkgs; [ gtk4 libadwaita ];
-          dependencies = [ pkgs.python3Packages.pygobject3 ];
-          postInstall = ''
-            install -Dm644 si.n1x05.notenix.kanal.desktop \
-              $out/share/applications/si.n1x05.notenix.kanal.desktop
-            # Bake the absolute path to kanalctl into the wrapper so pkexec
-            # and the GUI can find it even when launched from the app grid.
-            wrapProgram $out/bin/kanal \
-              --set KANALCTL_BIN $out/bin/kanalctl
-          '';
-        };
-      in {
+      packages.${system} = {
         install = import ./install.nix { inherit nixpkgs disko system; };
-        inherit kanal;
+        kanal   = kanal.packages.${system}.kanal;
         default = self.packages.${system}.install;
         vm      = self.nixosConfigurations.vm.config.system.build.vm;
       };
+
+      # ---------------------------------------------------------------------------
+      # Dev shell — `nix develop`
+      #   Provides Python + kanal deps for hacking on pkgs/kanal without a full
+      #   Nix build.  Run kanal directly with:
+      #     KANAL_DRY_RUN=1 python -m kanal.gui
+      # ---------------------------------------------------------------------------
+      devShells.${system}.default =
+        let pkgs = nixpkgs.legacyPackages.${system}; in
+        pkgs.mkShell {
+          name = "notenix-dev";
+          packages = with pkgs; [
+            # Python runtime + GTK bindings
+            (python3.withPackages (ps: with ps; [ pygobject3 ]))
+            gobject-introspection
+            gtk4
+            libadwaita
+            glib
+            # Useful tools
+            nixd
+            nil
+          ];
+          # Make GTK typelib path available
+          GI_TYPELIB_PATH = "${pkgs.gtk4}/lib/girepository-1.0:${pkgs.libadwaita}/lib/girepository-1.0:${pkgs.glib}/lib/girepository-1.0";
+          shellHook = ''
+            # pkgs/kanal/kanal/ is the package directory; add its parent to PYTHONPATH
+            # so `import kanal` works without installing.
+            export PYTHONPATH="$PWD/pkgs/kanal:$PYTHONPATH"
+            export KANAL_DRY_RUN=1
+            echo "notenix dev shell — $(python --version)"
+            echo "Run GUI: python -m kanal"
+            echo "Run CLI: python -m kanal --ctl status"
+          '';
+        };
     };
 }

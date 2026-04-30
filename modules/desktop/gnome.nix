@@ -9,7 +9,7 @@ in
   options.notenix.desktop.gnome = {
     enable = lib.mkOption {
       type    = lib.types.bool;
-      default = true;
+      default = false;
       description = "GNOME desktop environment.";
     };
 
@@ -102,7 +102,7 @@ in
               pkgs.gnomeExtensions.appindicator.extensionUuid
               pkgs.gnomeExtensions.dash-to-dock.extensionUuid
               pkgs.gnomeExtensions.gsconnect.extensionUuid
-              pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding.extensionUuid
+#              pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding.extensionUuid
             ];
             favorite-apps = cfg.favoriteApps;
           };
@@ -122,10 +122,10 @@ in
             intellihide         = false;
           };
 
-          "org/gnome/shell/extensions/gtk4-ding" = {
-            show-home  = false;
-            show-trash = false;
-          };
+#          "org/gnome/shell/extensions/gtk4-ding" = {
+#            show-home  = false;
+#            show-trash = false;
+#          };
         };
       }
     ];
@@ -140,7 +140,7 @@ in
       gnomeExtensions.appindicator
       gnomeExtensions.dash-to-dock
       gnomeExtensions.gsconnect
-      gnomeExtensions.gtk4-desktop-icons-ng-ding
+#      gnomeExtensions.gtk4-desktop-icons-ng-ding
       dconf
       libnotify
       gawk

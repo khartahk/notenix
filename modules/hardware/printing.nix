@@ -9,7 +9,7 @@ in
   options.notenix.hardware.printing = {
     enable = lib.mkOption {
       type    = lib.types.bool;
-      default = true;
+      default = false;
       description = "Printing support via CUPS.";
     };
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/si/n1x05/notenix/kanal/icons/scalable/actions">
+    <file>assets/update-symbolic.svg</file>
+  </gresource>
+</gresources>

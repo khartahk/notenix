@@ -1,4 +1,7 @@
 .*
+!.envrc
 !.gitignore
 *.qcow2
 /result*
+__pycache__/
+*.pyc
