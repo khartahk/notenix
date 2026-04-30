@@ -101,8 +101,8 @@
         pkgs.mkShell {
           name = "notenix-dev";
           packages = with pkgs; [
-            # Python runtime + GTK bindings
-            (python3.withPackages (ps: with ps; [ pygobject3 ]))
+            # Python runtime + GTK bindings + test runner
+            (python3.withPackages (ps: with ps; [ pygobject3 pytest ]))
             gobject-introspection
             gtk4
             libadwaita
@@ -114,9 +114,9 @@
           # Make GTK typelib path available
           GI_TYPELIB_PATH = "${pkgs.gtk4}/lib/girepository-1.0:${pkgs.libadwaita}/lib/girepository-1.0:${pkgs.glib}/lib/girepository-1.0";
           shellHook = ''
-            # pkgs/kanal/kanal/ is the package directory; add its parent to PYTHONPATH
+            # pkgs/kanal/src/ is the package root (src layout); add it to PYTHONPATH
             # so `import kanal` works without installing.
-            export PYTHONPATH="$PWD/pkgs/kanal:$PYTHONPATH"
+            export PYTHONPATH="$PWD/pkgs/kanal/src:$PYTHONPATH"
             export KANAL_DRY_RUN=1
             echo "notenix dev shell — $(python --version)"
             echo "Run GUI: python -m kanal"
