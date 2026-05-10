@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ config, lib, pkgs-unstable, ... }:
 
 # Optional feature flags that can be toggled independently of the preset.
 # Written to machine.nix by kanal; each defaults to false so the base system
@@ -21,6 +21,12 @@ in
       type        = types.bool;
       default     = false;
       description = "Kiosk mode: auto-login to a single-app fullscreen session.";
+    };
+
+    rustdesk = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "RustDesk remote desktop server (allows remote access to this machine).";
     };
   };
 
@@ -45,6 +51,12 @@ in
           settings."org/gnome/desktop/session".idle-delay = config.lib.gvariant.mkUint32 0;
         }
       ];
+    })
+
+    (mkIf cfg.rustdesk {
+      environment.systemPackages = [ pkgs-unstable.rustdesk ];
+      networking.firewall.allowedTCPPorts = [ 21115 21116 21117 21118 21119 ];
+      networking.firewall.allowedUDPPorts = [ 21116 ];
     })
   ];
 }

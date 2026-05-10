@@ -18,6 +18,7 @@ from kanal.constants import (
     FLAKE_REF,
     KANALCTL_BIN,
     KEY_FEATURE_KIOSK,
+    KEY_FEATURE_RUSTDESK,
     KEY_FEATURE_SSH,
     KEY_HOSTNAME,
     KEY_KBLAYOUT,
@@ -190,7 +191,7 @@ def pkexec_save_features_stream(features: dict[str, bool], rebuild: bool = True)
         return
     cmd = ["pkexec", KANALCTL_BIN, "set-features"]
     for key, enabled in features.items():
-        flag = {KEY_FEATURE_SSH: "--ssh", KEY_FEATURE_KIOSK: "--kiosk"}.get(key)
+        flag = {KEY_FEATURE_SSH: "--ssh", KEY_FEATURE_KIOSK: "--kiosk", KEY_FEATURE_RUSTDESK: "--rustdesk"}.get(key)
         if flag:
             cmd.append(flag if enabled else flag.replace("--", "--no-"))
     if rebuild:

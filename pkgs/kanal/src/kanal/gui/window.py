@@ -75,11 +75,14 @@ class ChannelWindow(Adw.Window):
         main_group.add(self._preset_row)
 
         self._update_preset_model(self._channel_ids[selected_ch], current_preset=status.preset)
+        self._current_preset = status.preset  # track active (installed) preset
         self._channel_row.connect("notify::selected", self._on_channel_changed)
+        self._preset_row.connect("notify::selected", self._on_preset_changed)
 
         op_row = Adw.ActionRow()
         op_row.set_title("Automatic upgrade activation")
         op_row.set_subtitle("Applies to manual Save and the automatic upgrade service")
+        self._op_row = op_row
 
         self._op_reboot_btn = Gtk.CheckButton(label="After reboot")
         self._op_now_btn    = Gtk.CheckButton(label="Immediately")
@@ -209,6 +212,12 @@ class ChannelWindow(Adw.Window):
         self._kiosk_row.set_subtitle("Auto-login, no screen lock")
         self._kiosk_row.set_active(features.get(backend.KEY_FEATURE_KIOSK, False))
         feat_group.add(self._kiosk_row)
+
+        self._rustdesk_row = Adw.SwitchRow()
+        self._rustdesk_row.set_title("RustDesk")
+        self._rustdesk_row.set_subtitle("Remote desktop — allows controlling this machine remotely")
+        self._rustdesk_row.set_active(features.get(backend.KEY_FEATURE_RUSTDESK, False))
+        feat_group.add(self._rustdesk_row)
 
         self._stack.add_titled(features_page, "features", "Features")
 
@@ -384,6 +393,31 @@ class ChannelWindow(Adw.Window):
         channel_id = self._channel_ids[idx] if idx < len(self._channel_ids) else self._channel_ids[0]
         self._update_preset_model(channel_id)
 
+    # Presets that switch the display manager — changing between these kills
+    # the current session if applied immediately.
+    _DM_GROUP: dict[str, str] = {
+        "desktop":      "gdm",
+        "desktop-lite": "lightdm",
+        "minimal":      "none",
+    }
+
+    def _on_preset_changed(self, row, _param) -> None:
+        idx = row.get_selected()
+        new_preset = self._preset_ids[idx] if idx < len(self._preset_ids) else None
+        old_dm = self._DM_GROUP.get(self._current_preset or "", "")
+        new_dm = self._DM_GROUP.get(new_preset or "", "")
+        if old_dm and new_dm and old_dm != new_dm:
+            # Switching DMs with "Immediately" kills the session — force boot.
+            self._op_reboot_btn.set_active(True)
+            self._op_now_btn.set_sensitive(False)
+            self._op_row.set_subtitle(
+                "Changing desktop environment requires a reboot — "
+                "'Immediately' is disabled"
+            )
+        else:
+            self._op_now_btn.set_sensitive(True)
+            self._op_row.set_subtitle("Applies to manual Save and the automatic upgrade service")
+
     def _channel_selection(self) -> tuple[str, str, str, str]:
         ch_idx    = self._channel_row.get_selected()
         channel   = self._channel_ids[ch_idx] if ch_idx < len(self._channel_ids) else self._channel_ids[0]
@@ -459,8 +493,9 @@ class ChannelWindow(Adw.Window):
 
     def _on_save_features_clicked(self, _btn):
         features = {
-            backend.KEY_FEATURE_SSH:   self._ssh_row.get_active(),
-            backend.KEY_FEATURE_KIOSK: self._kiosk_row.get_active(),
+            backend.KEY_FEATURE_SSH:      self._ssh_row.get_active(),
+            backend.KEY_FEATURE_KIOSK:    self._kiosk_row.get_active(),
+            backend.KEY_FEATURE_RUSTDESK: self._rustdesk_row.get_active(),
         }
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()

@@ -58,6 +58,12 @@ in
     boot.kernelPackages      = cfg.kernelPackages;
     boot.supportedFilesystems = lib.mkIf (cfg.supportedFilesystems != []) cfg.supportedFilesystems;
 
+    # Silent boot: hide kernel/systemd log lines, show Plymouth splash instead.
+    boot.kernelParams = [ "quiet" "splash" "loglevel=3" "udev.log_level=3" ];
+    boot.initrd.verbose = false;
+    boot.consoleLogLevel = 0;
+    boot.plymouth.enable = true;
+
     systemd.settings.Manager.DefaultTimeoutStopSec = "10s";
   };
 }

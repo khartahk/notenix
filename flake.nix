@@ -3,13 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     disko.url   = "github:nix-community/disko/latest";
     disko.inputs.nixpkgs.follows = "nixpkgs";
     kanal.url   = "path:pkgs/kanal";
     kanal.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, disko, kanal, ... }:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, kanal, ... }:
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
@@ -42,6 +43,7 @@
           ./hosts/notenix/configuration.nix
           ./hosts/notenix/disk.nix
           { environment.systemPackages = [ self.packages.${system}.kanal ]; }
+          { _module.args.pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; }; }
         ] ++ modules;
       };
 
@@ -59,6 +61,7 @@
             ./hosts/notenix/configuration.nix
             ./hosts/notenix/disk.nix
             { environment.systemPackages = [ self.packages.${system}.kanal ]; }
+            { _module.args.pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; }; }
           ];
         in
         {

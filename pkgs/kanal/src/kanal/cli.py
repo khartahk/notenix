@@ -90,8 +90,9 @@ def _cmd_set_machine(args: argparse.Namespace) -> int:
 
 def _cmd_set_features(args: argparse.Namespace) -> int:
     features: dict[str, bool] = {}
-    if args.ssh is not None:   features[backend.KEY_FEATURE_SSH]   = args.ssh
-    if args.kiosk is not None: features[backend.KEY_FEATURE_KIOSK] = args.kiosk
+    if args.ssh is not None:      features[backend.KEY_FEATURE_SSH]      = args.ssh
+    if args.kiosk is not None:    features[backend.KEY_FEATURE_KIOSK]    = args.kiosk
+    if args.rustdesk is not None: features[backend.KEY_FEATURE_RUSTDESK] = args.rustdesk
     try:
         backend.save_features(features)
     except OSError as exc:
@@ -157,8 +158,10 @@ def build_parser() -> argparse.ArgumentParser:
     f = sub.add_parser("set-features", help="Enable/disable optional features (requires root)")
     f.add_argument("--ssh",    dest="ssh",   action="store_true",  default=None)
     f.add_argument("--no-ssh", dest="ssh",   action="store_false")
-    f.add_argument("--kiosk",    dest="kiosk", action="store_true",  default=None)
-    f.add_argument("--no-kiosk", dest="kiosk", action="store_false")
+    f.add_argument("--kiosk",       dest="kiosk",    action="store_true",  default=None)
+    f.add_argument("--no-kiosk",    dest="kiosk",    action="store_false")
+    f.add_argument("--rustdesk",    dest="rustdesk", action="store_true",  default=None)
+    f.add_argument("--no-rustdesk", dest="rustdesk", action="store_false")
     f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     f.set_defaults(func=_cmd_set_features)
 

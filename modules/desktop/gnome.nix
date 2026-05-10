@@ -93,7 +93,29 @@ in
 
     environment.gnome.excludePackages = cfg.excludePackages;
 
+    # Set GDM cursor so it's not a blank square
+    programs.dconf.profiles.gdm.databases = [
+      {
+        settings = {
+          "org/gnome/desktop/interface" = {
+            cursor-theme = "Adwaita";
+          };
+        };
+      }
+    ];
+
     programs.dconf.profiles.user.databases = [
+      {
+        # Locked: cursor + icon theme must always be Adwaita in GNOME regardless
+        # of what a previous desktop environment wrote to the user's dconf.
+        lockAll = true;
+        settings = {
+          "org/gnome/desktop/interface" = {
+            cursor-theme = "Adwaita";
+            icon-theme   = "Adwaita";
+          };
+        };
+      }
       {
         lockAll  = false;
         settings = {
@@ -131,6 +153,7 @@ in
     ];
 
     environment.systemPackages = with pkgs; [
+      adwaita-icon-theme
       firefox
       gnome-calculator
       gnome-calendar
@@ -146,5 +169,9 @@ in
       gawk
       gnugrep
     ] ++ cfg.extraPackages;
+
+    # GSConnect / KDE Connect ports
+    networking.firewall.allowedTCPPortRanges = [{ from = 1714; to = 1764; }];
+    networking.firewall.allowedUDPPortRanges = [{ from = 1714; to = 1764; }];
   };
 }

@@ -27,6 +27,24 @@ in
       displayManager.lightdm.enable  = true;
     };
 
+    # dconf defaults for Cinnamon: taskbar favourites
+    programs.dconf.enable = true;
+    programs.dconf.profiles.user.databases = [
+      {
+        lockAll = false;
+        settings = {
+          "org/cinnamon" = {
+            favorite-apps = [
+              "firefox.desktop"
+              "nemo.desktop"
+              "org.gnome.Calculator.desktop"
+              "org.gnome.Console.desktop"
+            ];
+          };
+        };
+      }
+    ];
+
     # Typical apps shipped with a Cinnamon desktop
     environment.systemPackages = with pkgs; [
       # File management
@@ -56,6 +74,8 @@ in
       # Theming
       mint-themes
       mint-y-icons
+      adwaita-icon-theme   # Adwaita cursor fallback
+      gnome-themes-extra   # Adwaita GTK theme
     ] ++ cfg.extraPackages;
   };
 }

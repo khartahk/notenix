@@ -28,10 +28,11 @@ KEY_OP           = "notenix.system.autoupgrade.operation"
 KEY_FLAKEREPO    = "notenix.system.autoupgrade.flakeRepo"
 KEY_PRESET       = "notenix.preset"
 
-KEY_FEATURE_SSH   = "notenix.features.ssh"
-KEY_FEATURE_KIOSK = "notenix.features.kiosk"
+KEY_FEATURE_SSH      = "notenix.features.ssh"
+KEY_FEATURE_KIOSK    = "notenix.features.kiosk"
+KEY_FEATURE_RUSTDESK = "notenix.features.rustdesk"
 
-ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK]
+ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK]
 
 KEY_HOSTNAME     = "notenix.system.install.hostName"
 KEY_USERNAME     = "notenix.system.install.userName"
