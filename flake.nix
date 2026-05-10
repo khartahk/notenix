@@ -84,7 +84,7 @@
       #   nix run .#vm       — full GNOME desktop VM (needs QEMU display)
       # ---------------------------------------------------------------------------
       packages.${system} = {
-        install = import ./install.nix { inherit nixpkgs disko system; };
+        install = import ./install.nix { inherit nixpkgs disko system self; };
         kanal   = kanal.packages.${system}.kanal;
         default = self.packages.${system}.install;
         vm      = self.nixosConfigurations.vm.config.system.build.vm;
