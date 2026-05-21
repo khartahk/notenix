@@ -176,6 +176,11 @@ EOF
 
     LOCAL_FLAKE="path:$TMP/etc/nixos#notenix"
 
+    # Stub needed so disko can evaluate the flake (real file generated after disko)
+    cat > "$TMP/etc/nixos/hardware-configuration.nix" <<'HWSTUB'
+{ ... }: { }
+HWSTUB
+
     # ── 10. Partition, format, install ────────────────────────────────
     echo ""
     echo "→ Partitioning $DISK…"
