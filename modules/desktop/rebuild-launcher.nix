@@ -5,7 +5,7 @@
 #   "Apply Update on Reboot"  → nixos-rebuild boot   (takes effect after reboot)
 #
 # Both entries open gnome-console (kgx) so the user can see progress.
-# pkexec is used for privilege escalation — no password stored anywhere.
+# pkexec is used for privilege escalation - no password stored anywhere.
 # Enabled whenever any desktop preset is active.
 
 let
@@ -26,7 +26,7 @@ let
       Comment=${description}
       Comment[sl]=${descriptionSl}
       Icon=${icon}
-      Exec=kgx -- bash -c "pkexec nixos-rebuild ${operation} --refresh --flake ${flakeArg}; echo; echo '--- Done. Press Enter to close. ---'; read"
+      Exec=kgx -- bash -c "pkexec sh -c 'nix flake update /etc/nixos && nixos-rebuild ${operation} --flake ${flakeArg}'; echo; echo '--- Done. Press Enter to close. ---'; read"
       Terminal=false
       Categories=System;Settings;
       Keywords=update;rebuild;nixos;system;
