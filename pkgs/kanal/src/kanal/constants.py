@@ -39,14 +39,14 @@ KEY_FLATPAK_PACKAGES = "notenix.applications.flatpak.packages"
 # Curated list of Flatpak apps shown as checkboxes in the GUI.
 # Format: { flatpak_id: (display_name, subtitle) }
 FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
-    "org.libreoffice.LibreOffice":    ("LibreOffice",     "Full office suite — Writer, Calc, Impress"),
-    "org.videolan.VLC":               ("VLC",             "Media player"),
-    "com.spotify.Client":             ("Spotify",         "Music streaming"),
+    "org.chromium.Chromium":          ("Chromium",        "Web browser"),
     "org.signal.Signal":              ("Signal",          "Encrypted messaging"),
-    "com.obsproject.Studio":          ("OBS Studio",      "Screen recording and streaming"),
-    "com.vscodium.codium":            ("VSCodium",        "Code editor"),
-    "com.github.tchx84.Flatseal":     ("Flatseal",        "Manage Flatpak permissions"),
     "org.nextcloud.Nextcloud":        ("Nextcloud",       "Sync files and folders with Nextcloud"),
+    "org.libreoffice.LibreOffice":    ("LibreOffice",     "Full office suite — Writer, Calc, Impress"),
+    "com.vscodium.codium":            ("VSCodium",        "Code editor"),
+    "com.obsproject.Studio":          ("OBS Studio",      "Screen recording and streaming"),
+    "org.videolan.VLC":               ("VLC",             "Media player"),
+    "com.github.tchx84.Flatseal":     ("Flatseal",        "Manage Flatpak permissions"),
 }
 
 KEY_HOSTNAME     = "notenix.system.install.hostName"
