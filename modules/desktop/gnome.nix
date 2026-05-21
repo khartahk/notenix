@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 
 # GNOME desktop environment with opinionated defaults.
 
@@ -9,7 +9,7 @@ let
     "appindicator"                = pkgs.gnomeExtensions.appindicator;
     "dash-to-dock"                = pkgs.gnomeExtensions.dash-to-dock;
     "gsconnect"                   = pkgs.gnomeExtensions.gsconnect;
-    "gtk4-desktop-icons-ng-ding"  = pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding;
+    "gtk4-desktop-icons-ng-ding"  = pkgs-unstable.gnomeExtensions.gtk4-desktop-icons-ng-ding;
   };
   _activeExtIds  = builtins.filter (id: builtins.hasAttr id _extPkgs) cfg.extensions;
   _activeExtPkgs = map (id: _extPkgs.${id}) _activeExtIds;
