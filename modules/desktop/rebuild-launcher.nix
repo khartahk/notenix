@@ -26,7 +26,7 @@ let
       Comment=${description}
       Comment[sl]=${descriptionSl}
       Icon=${icon}
-      Exec=kgx -- bash -c "pkexec sh -c 'nix flake update /etc/nixos && nixos-rebuild ${operation} --flake ${flakeArg}'; echo; echo '--- Done. Press Enter to close. ---'; read"
+      Exec=kgx -- bash -c "pkexec sh -c 'nix flake update /etc/nixos && nixos-rebuild ${operation} --flake ${flakeArg}'; echo; echo '--- Done. Close this window to continue. ---'"
       Terminal=false
       Categories=System;Settings;
       Keywords=update;rebuild;nixos;system;
