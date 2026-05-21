@@ -109,6 +109,24 @@ def _cmd_set_features(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_apps(args: argparse.Namespace) -> int:
+    app_ids: list[str] = args.apps or []
+    try:
+        backend.save_apps(app_ids)
+    except OSError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print("Flatpak app list saved.", flush=True)
+    if args.rebuild:
+        status = backend.read_status()
+        print(f"Running nixos-rebuild {status.operation}…", flush=True)
+        rc, _ = backend.run_upgrade(status.channel, status.operation)
+        if rc != 0:
+            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
+        return rc
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="kanalctl",
@@ -164,6 +182,13 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--no-rustdesk", dest="rustdesk", action="store_false")
     f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     f.set_defaults(func=_cmd_set_features)
+
+    # set-apps
+    ap = sub.add_parser("set-apps", help="Set Flatpak app list (requires root)")
+    ap.add_argument("apps", nargs="*", metavar="APP_ID",
+                    help="Flatpak app IDs to install (replaces current list; omit all to clear)")
+    ap.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
+    ap.set_defaults(func=_cmd_set_apps)
 
     return p
 

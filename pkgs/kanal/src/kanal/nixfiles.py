@@ -151,6 +151,47 @@ def _remove_key(contents: str, key: str) -> str:
         )
     )
 
+
+def _get_list(contents: str, key: str) -> list[str] | None:
+    """Extract a Nix list value from ``key = lib.mkForce [ "a" "b" ];``.
+
+    Returns ``None`` if the key is absent, or an empty list ``[]`` if the key
+    is present but the list is empty (``[ ]``).  Only single-line lists are
+    supported — multi-line lists are treated as absent.
+    """
+    for line in contents.splitlines():
+        t = line.strip()
+        if t.startswith(key) and t[len(key):].lstrip().startswith("="):
+            after = t.split("=", 1)[1].strip()
+            after = re.sub(r"^lib\.mkForce\s*", "", after).strip().rstrip(";").strip()
+            if after.startswith("[") and after.endswith("]"):
+                inner = after[1:-1].strip()
+                if not inner:
+                    return []
+                return re.findall(r'"([^"]*)"', inner)
+    return None
+
+
+def _upsert_list(contents: str, key: str, values: list[str]) -> str:
+    """Replace or insert a Nix list assignment for *key*.
+
+    Writes a single-line ``key = lib.mkForce [ "a" "b" ];`` form.
+    If *values* is empty the list is written as ``[ ]``.
+    """
+    items = " ".join(f'"{v}"' for v in values)
+    new_line = f'  {key} = lib.mkForce [ {items}];'
+    lines = contents.splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        t = line.strip()
+        if t.startswith(key) and t[len(key):].lstrip().startswith("="):
+            lines[i] = new_line + "\n"
+            return "".join(lines)
+    joined = "".join(lines)
+    pos = joined.rfind("}")
+    if pos >= 0:
+        return joined[:pos] + new_line + "\n" + joined[pos:]
+    return joined + "\n" + new_line + "\n"
+
 # ---------------------------------------------------------------------------
 # High-level read — no root required
 # ---------------------------------------------------------------------------

@@ -34,6 +34,21 @@ KEY_FEATURE_RUSTDESK = "notenix.features.rustdesk"
 
 ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK]
 
+KEY_FLATPAK_PACKAGES = "notenix.applications.flatpak.packages"
+
+# Curated list of Flatpak apps shown as checkboxes in the GUI.
+# Format: { flatpak_id: (display_name, subtitle) }
+FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
+    "org.libreoffice.LibreOffice":    ("LibreOffice",     "Full office suite — Writer, Calc, Impress"),
+    "org.videolan.VLC":               ("VLC",             "Media player"),
+    "com.spotify.Client":             ("Spotify",         "Music streaming"),
+    "org.signal.Signal":              ("Signal",          "Encrypted messaging"),
+    "com.obsproject.Studio":          ("OBS Studio",      "Screen recording and streaming"),
+    "com.vscodium.codium":            ("VSCodium",        "Code editor"),
+    "com.github.tchx84.Flatseal":     ("Flatseal",        "Manage Flatpak permissions"),
+    "org.nextcloud.Nextcloud":        ("Nextcloud",       "Sync files and folders with Nextcloud"),
+}
+
 KEY_HOSTNAME     = "notenix.system.install.hostName"
 KEY_USERNAME     = "notenix.system.install.userName"
 KEY_USERDESC     = "notenix.system.install.userDescription"

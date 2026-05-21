@@ -205,3 +205,23 @@ def pkexec_save_features_stream(features: dict[str, bool], rebuild: bool = True)
         yield line
     proc.wait()
     yield None, proc.returncode
+
+
+def pkexec_save_apps_stream(app_ids: list[str], rebuild: bool = True):
+    """Invoke ``pkexec kanalctl set-apps`` and stream output."""
+    if DRY_RUN:
+        yield f"[kanal dry-run] set-apps: {app_ids!r}\n"
+        yield None, 0
+        return
+    cmd = ["pkexec", KANALCTL_BIN, "set-apps"] + app_ids
+    if rebuild:
+        cmd.append("--rebuild")
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
+    )
+    for line in proc.stdout:
+        yield line
+    proc.wait()
+    yield None, proc.returncode

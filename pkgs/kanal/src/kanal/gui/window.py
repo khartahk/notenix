@@ -221,6 +221,26 @@ class ChannelWindow(Adw.Window):
 
         self._stack.add_titled(features_page, "features", "Features")
 
+        # ══ Apps page ══════════════════════════════════════════════════════
+        apps_page = Adw.PreferencesPage()
+
+        apps_group = Adw.PreferencesGroup()
+        apps_group.set_title("Flatpak applications")
+        apps_group.set_description("Apps installed from Flathub on next rebuild")
+        apps_page.add(apps_group)
+
+        installed_apps = set(backend.read_apps())
+        self._app_rows: dict[str, Adw.SwitchRow] = {}
+        for app_id, (name, subtitle) in backend.FLATPAK_CATALOG.items():
+            row = Adw.SwitchRow()
+            row.set_title(name)
+            row.set_subtitle(subtitle)
+            row.set_active(app_id in installed_apps)
+            apps_group.add(row)
+            self._app_rows[app_id] = row
+
+        self._stack.add_titled(apps_page, "apps", "Apps")
+
         # ── Action bar ────────────────────────────────────────────────────
         self._save_btn = Gtk.Button(label="Save")
         self._save_btn.add_css_class("pill")
@@ -231,6 +251,11 @@ class ChannelWindow(Adw.Window):
         self._save_features_btn.add_css_class("pill")
         self._save_features_btn.connect("clicked", self._on_save_features_clicked)
 
+        self._save_apps_btn = Gtk.Button(label="Save")
+        self._save_apps_btn.add_css_class("suggested-action")
+        self._save_apps_btn.add_css_class("pill")
+        self._save_apps_btn.connect("clicked", self._on_save_apps_clicked)
+
         self._activate_btn = Gtk.Button(label="Save")
         self._activate_btn.add_css_class("suggested-action")
         self._activate_btn.add_css_class("pill")
@@ -239,6 +264,7 @@ class ChannelWindow(Adw.Window):
         action_bar = Gtk.ActionBar()
         action_bar.pack_end(self._activate_btn)
         action_bar.pack_end(self._save_features_btn)
+        action_bar.pack_end(self._save_apps_btn)
         action_bar.pack_end(self._save_btn)
 
         # ── Layout — sidebar left, content right ─────────────────────────
@@ -320,6 +346,7 @@ class ChannelWindow(Adw.Window):
         tab = stack.get_visible_child_name()
         self._activate_btn.set_visible(tab == "channel")
         self._save_features_btn.set_visible(tab == "features")
+        self._save_apps_btn.set_visible(tab == "apps")
         self._save_btn.set_visible(tab == "machine")
 
     def _start_refresh(self) -> None:
@@ -500,6 +527,11 @@ class ChannelWindow(Adw.Window):
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()
 
+    def _on_save_apps_clicked(self, _btn):
+        app_ids = [aid for aid, row in self._app_rows.items() if row.get_active()]
+        self._set_busy(True, self._save_apps_btn, "Saving...")
+        threading.Thread(target=self._worker_save_apps, args=(app_ids,), daemon=True).start()
+
     def _worker_activate(self, channel: str, op: str, preset: str, flake_url: str):
         dry = backend.DRY_RUN
         GLib.idle_add(self._log_buf.set_text, "")
@@ -594,6 +626,38 @@ class ChannelWindow(Adw.Window):
 
     def _done_save_features(self, message: str, error: str | None = None):
         self._set_busy(False, self._save_features_btn, "Save")
+        self._show_result(message, error)
+
+    def _worker_save_apps(self, app_ids: list[str]):
+        dry = backend.DRY_RUN
+        GLib.idle_add(self._log_buf.set_text, "")
+        GLib.idle_add(self._show_more_btn.set_visible, True)
+        GLib.idle_add(self._log_revealer.set_reveal_child, False)
+        GLib.idle_add(self._show_more_btn.set_label, "Show more")
+        if dry:
+            GLib.idle_add(self._append_log, f"[kanal dry-run] apps: {app_ids!r}\n")
+        try:
+            rc = 0
+            for item in backend.pkexec_save_apps_stream(app_ids):
+                if item is None:
+                    break
+                if isinstance(item, tuple):
+                    _, rc = item
+                    break
+                GLib.idle_add(self._append_log, item)
+            if rc == 0:
+                msg = "[Dry run] Would save apps" if dry else "App list saved and applied"
+                GLib.idle_add(self._done_save_apps, msg, None)
+            else:
+                GLib.idle_add(self._done_save_apps, "Save failed", f"kanalctl set-apps exited {rc}")
+        except Exception as exc:  # noqa: BLE001
+            import traceback
+            tb = traceback.format_exc()
+            print(f"[kanal] _worker_save_apps crashed: {tb}", file=sys.stderr, flush=True)
+            GLib.idle_add(self._done_save_apps, "Save failed", str(exc))
+
+    def _done_save_apps(self, message: str, error: str | None = None):
+        self._set_busy(False, self._save_apps_btn, "Save")
         self._show_result(message, error)
 
     def _show_result(self, message: str, error: str | None = None):

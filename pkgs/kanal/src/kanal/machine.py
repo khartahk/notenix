@@ -19,6 +19,7 @@ from pathlib import Path
 from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
+    KEY_FLATPAK_PACKAGES,
     KEY_HOSTNAME,
     KEY_KBLAYOUT,
     KEY_LOCALE,
@@ -28,7 +29,7 @@ from kanal.constants import (
     KEY_USERNAME,
     MACHINE_PATH,
 )
-from kanal.nixfiles import _get_value, _remove_key, _upsert_bool, _upsert_value
+from kanal.nixfiles import _get_value, _get_list, _remove_key, _upsert_bool, _upsert_list, _upsert_value
 
 _DEFAULT_MACHINE = "{ lib, ... }:\n{\n}\n"
 
@@ -155,6 +156,35 @@ def save_features(features: dict[str, bool]) -> None:
 
     if DRY_RUN:
         print(f"[kanal dry-run] would write features to {MACHINE_PATH}:\n{contents}", flush=True)
+        return
+
+    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MACHINE_PATH.write_text(contents)
+
+
+def read_apps() -> list[str]:
+    """Return the list of Flatpak app IDs from machine.nix (no root required)."""
+    if MACHINE_PATH.exists():
+        result = _get_list(MACHINE_PATH.read_text(), KEY_FLATPAK_PACKAGES)
+        if result is not None:
+            return result
+    return []
+
+
+def save_apps(app_ids: list[str]) -> None:
+    """Write Flatpak package list to machine.nix (must be called as root)."""
+    if MACHINE_PATH.exists():
+        contents = MACHINE_PATH.read_text()
+    else:
+        contents = _DEFAULT_MACHINE
+
+    if app_ids:
+        contents = _upsert_list(contents, KEY_FLATPAK_PACKAGES, app_ids)
+    else:
+        contents = _remove_key(contents, KEY_FLATPAK_PACKAGES)
+
+    if DRY_RUN:
+        print(f"[kanal dry-run] would write apps to {MACHINE_PATH}:\n{contents}", flush=True)
         return
 
     MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
