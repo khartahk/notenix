@@ -179,5 +179,19 @@ in
     # GSConnect / KDE Connect ports
     networking.firewall.allowedTCPPortRanges = [{ from = 1714; to = 1764; }];
     networking.firewall.allowedUDPPortRanges = [{ from = 1714; to = 1764; }];
+
+    # Ensure xdg-user-dirs-gtk prompts to rename folders to the current locale
+    # on first login. Without this, user-dirs.locale is never written and the
+    # rename prompt never fires on a fresh NixOS install.
+    systemd.user.services.xdg-user-dirs-init = {
+      description = "Initialise XDG user directories for current locale";
+      wantedBy    = [ "default.target" ];
+      after       = [ "basic.target" ];
+      serviceConfig = {
+        Type      = "oneshot";
+        ExecStart = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update";
+        RemainAfterExit = true;
+      };
+    };
   };
 }
