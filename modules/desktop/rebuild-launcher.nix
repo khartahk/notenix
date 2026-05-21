@@ -41,7 +41,7 @@ let
     description   = "Applies pending changes to your computer right away. You can keep using it while the update runs.";
     descriptionSl = "Uveljavi čakajoče spremembe takoj. Med posodobitvijo lahko računalnik normalno uporabljaš.";
     operation     = "switch";
-    icon          = "system-software-update";
+    icon          = "software-update-available";
   };
 
   bootLauncher = mkLauncher {
@@ -51,7 +51,7 @@ let
     description   = "Prepares the update so it takes effect the next time you restart your computer. Nothing changes until you reboot.";
     descriptionSl = "Pripravi posodobitev, ki se uveljavi ob naslednjem zagonu. Do takrat se ne spremeni nič.";
     operation     = "boot";
-    icon          = "system-restart";
+    icon          = "system-reboot";
   };
 
 in
