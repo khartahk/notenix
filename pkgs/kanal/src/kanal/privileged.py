@@ -225,3 +225,23 @@ def pkexec_save_apps_stream(app_ids: list[str], rebuild: bool = True):
         yield line
     proc.wait()
     yield None, proc.returncode
+
+
+def pkexec_save_extensions_stream(ext_ids: list[str], rebuild: bool = True):
+    """Invoke ``pkexec kanalctl set-extensions`` and stream output."""
+    if DRY_RUN:
+        yield f"[kanal dry-run] set-extensions: {ext_ids!r}\n"
+        yield None, 0
+        return
+    cmd = ["pkexec", KANALCTL_BIN, "set-extensions"] + ext_ids
+    if rebuild:
+        cmd.append("--rebuild")
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
+    )
+    for line in proc.stdout:
+        yield line
+    proc.wait()
+    yield None, proc.returncode

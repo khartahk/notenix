@@ -221,6 +221,26 @@ class ChannelWindow(Adw.Window):
 
         self._stack.add_titled(features_page, "features", "Features")
 
+        # ══ Extensions page ═══════════════════════════════════════════════════
+        extensions_page = Adw.PreferencesPage()
+
+        ext_group = Adw.PreferencesGroup()
+        ext_group.set_title("GNOME extensions")
+        ext_group.set_description("Enabled on next rebuild (only applies to GNOME desktop preset)")
+        extensions_page.add(ext_group)
+
+        enabled_exts = set(backend.read_extensions())
+        self._ext_rows: dict[str, Adw.SwitchRow] = {}
+        for ext_id, (name, subtitle) in backend.GNOME_EXTENSIONS_CATALOG.items():
+            row = Adw.SwitchRow()
+            row.set_title(name)
+            row.set_subtitle(subtitle)
+            row.set_active(ext_id in enabled_exts if enabled_exts else ext_id in ("appindicator", "dash-to-dock", "gsconnect"))
+            ext_group.add(row)
+            self._ext_rows[ext_id] = row
+
+        self._stack.add_titled(extensions_page, "extensions", "Extensions")
+
         # ══ Apps page ══════════════════════════════════════════════════════
         apps_page = Adw.PreferencesPage()
 
@@ -256,6 +276,11 @@ class ChannelWindow(Adw.Window):
         self._save_apps_btn.add_css_class("pill")
         self._save_apps_btn.connect("clicked", self._on_save_apps_clicked)
 
+        self._save_extensions_btn = Gtk.Button(label="Save")
+        self._save_extensions_btn.add_css_class("suggested-action")
+        self._save_extensions_btn.add_css_class("pill")
+        self._save_extensions_btn.connect("clicked", self._on_save_extensions_clicked)
+
         self._activate_btn = Gtk.Button(label="Save")
         self._activate_btn.add_css_class("suggested-action")
         self._activate_btn.add_css_class("pill")
@@ -264,6 +289,7 @@ class ChannelWindow(Adw.Window):
         action_bar = Gtk.ActionBar()
         action_bar.pack_end(self._activate_btn)
         action_bar.pack_end(self._save_features_btn)
+        action_bar.pack_end(self._save_extensions_btn)
         action_bar.pack_end(self._save_apps_btn)
         action_bar.pack_end(self._save_btn)
 
@@ -346,6 +372,7 @@ class ChannelWindow(Adw.Window):
         tab = stack.get_visible_child_name()
         self._activate_btn.set_visible(tab == "channel")
         self._save_features_btn.set_visible(tab == "features")
+        self._save_extensions_btn.set_visible(tab == "extensions")
         self._save_apps_btn.set_visible(tab == "apps")
         self._save_btn.set_visible(tab == "machine")
 
@@ -532,6 +559,11 @@ class ChannelWindow(Adw.Window):
         self._set_busy(True, self._save_apps_btn, "Saving...")
         threading.Thread(target=self._worker_save_apps, args=(app_ids,), daemon=True).start()
 
+    def _on_save_extensions_clicked(self, _btn):
+        ext_ids = [eid for eid, row in self._ext_rows.items() if row.get_active()]
+        self._set_busy(True, self._save_extensions_btn, "Saving...")
+        threading.Thread(target=self._worker_save_extensions, args=(ext_ids,), daemon=True).start()
+
     def _worker_activate(self, channel: str, op: str, preset: str, flake_url: str):
         dry = backend.DRY_RUN
         GLib.idle_add(self._log_buf.set_text, "")
@@ -658,6 +690,38 @@ class ChannelWindow(Adw.Window):
 
     def _done_save_apps(self, message: str, error: str | None = None):
         self._set_busy(False, self._save_apps_btn, "Save")
+        self._show_result(message, error)
+
+    def _worker_save_extensions(self, ext_ids: list[str]):
+        dry = backend.DRY_RUN
+        GLib.idle_add(self._log_buf.set_text, "")
+        GLib.idle_add(self._show_more_btn.set_visible, True)
+        GLib.idle_add(self._log_revealer.set_reveal_child, False)
+        GLib.idle_add(self._show_more_btn.set_label, "Show more")
+        if dry:
+            GLib.idle_add(self._append_log, f"[kanal dry-run] extensions: {ext_ids!r}\n")
+        try:
+            rc = 0
+            for item in backend.pkexec_save_extensions_stream(ext_ids):
+                if item is None:
+                    break
+                if isinstance(item, tuple):
+                    _, rc = item
+                    break
+                GLib.idle_add(self._append_log, item)
+            if rc == 0:
+                msg = "[Dry run] Would save extensions" if dry else "Extensions saved and applied"
+                GLib.idle_add(self._done_save_extensions, msg, None)
+            else:
+                GLib.idle_add(self._done_save_extensions, "Save failed", f"kanalctl set-extensions exited {rc}")
+        except Exception as exc:  # noqa: BLE001
+            import traceback
+            tb = traceback.format_exc()
+            print(f"[kanal] _worker_save_extensions crashed: {tb}", file=sys.stderr, flush=True)
+            GLib.idle_add(self._done_save_extensions, "Save failed", str(exc))
+
+    def _done_save_extensions(self, message: str, error: str | None = None):
+        self._set_busy(False, self._save_extensions_btn, "Save")
         self._show_result(message, error)
 
     def _show_result(self, message: str, error: str | None = None):

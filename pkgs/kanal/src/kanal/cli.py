@@ -190,6 +190,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     ap.set_defaults(func=_cmd_set_apps)
 
+    # set-extensions
+    ex = sub.add_parser("set-extensions", help="Set enabled GNOME extensions (requires root)")
+    ex.add_argument("extensions", nargs="*", metavar="EXT_ID",
+                    help="Extension IDs to enable (replaces current list; omit all to clear)")
+    ex.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
+    ex.set_defaults(func=_cmd_set_extensions)
+
     return p
 
 

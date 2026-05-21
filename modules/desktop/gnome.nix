@@ -4,6 +4,15 @@
 
 let
   cfg = config.notenix.desktop.gnome;
+
+  _extPkgs = {
+    "appindicator"                = pkgs.gnomeExtensions.appindicator;
+    "dash-to-dock"                = pkgs.gnomeExtensions.dash-to-dock;
+    "gsconnect"                   = pkgs.gnomeExtensions.gsconnect;
+    "gtk4-desktop-icons-ng-ding"  = pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding;
+  };
+  _activeExtIds  = builtins.filter (id: builtins.hasAttr id _extPkgs) cfg.extensions;
+  _activeExtPkgs = map (id: _extPkgs.${id}) _activeExtIds;
 in
 {
   options.notenix.desktop.gnome = {
@@ -81,6 +90,12 @@ in
       default = true;
       description = "Show the dash-to-dock panel permanently (true) or auto-hide it (false).";
     };
+
+    extensions = lib.mkOption {
+      type    = lib.types.listOf lib.types.str;
+      default = [ "appindicator" "dash-to-dock" "gsconnect" ];
+      description = "GNOME extensions to install and enable. Valid IDs: appindicator, dash-to-dock, gsconnect, gtk4-desktop-icons-ng-ding.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -120,12 +135,7 @@ in
         lockAll  = false;
         settings = {
           "org/gnome/shell" = {
-            enabled-extensions = [
-              pkgs.gnomeExtensions.appindicator.extensionUuid
-              pkgs.gnomeExtensions.dash-to-dock.extensionUuid
-              pkgs.gnomeExtensions.gsconnect.extensionUuid
-#              pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding.extensionUuid
-            ];
+            enabled-extensions = map (id: _extPkgs.${id}.extensionUuid) _activeExtIds;
             favorite-apps = cfg.favoriteApps;
           };
 
@@ -143,11 +153,11 @@ in
             autohide            = !cfg.dockFixed;
             intellihide         = false;
           };
-
-#          "org/gnome/shell/extensions/gtk4-ding" = {
-#            show-home  = false;
-#            show-trash = false;
-#          };
+        } // lib.optionalAttrs (builtins.elem "gtk4-desktop-icons-ng-ding" cfg.extensions) {
+          "org/gnome/shell/extensions/gtk4-ding" = {
+            show-home  = false;
+            show-trash = false;
+          };
         };
       }
     ];
@@ -160,15 +170,11 @@ in
       gnome-screenshot
       gnome-console
       gnome-software
-      gnomeExtensions.appindicator
-      gnomeExtensions.dash-to-dock
-      gnomeExtensions.gsconnect
-#      gnomeExtensions.gtk4-desktop-icons-ng-ding
       dconf
       libnotify
       gawk
       gnugrep
-    ] ++ cfg.extraPackages;
+    ] ++ _activeExtPkgs ++ cfg.extraPackages;
 
     # GSConnect / KDE Connect ports
     networking.firewall.allowedTCPPortRanges = [{ from = 1714; to = 1764; }];

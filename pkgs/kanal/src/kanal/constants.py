@@ -34,7 +34,17 @@ KEY_FEATURE_RUSTDESK = "notenix.features.rustdesk"
 
 ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK]
 
-KEY_FLATPAK_PACKAGES = "notenix.applications.flatpak.packages"
+KEY_FLATPAK_PACKAGES  = "notenix.applications.flatpak.packages"
+KEY_GNOME_EXTENSIONS  = "notenix.desktop.gnome.extensions"
+
+# GNOME extensions shown as toggles in the GUI.
+# Format: { extension_id: (display_name, subtitle) }
+GNOME_EXTENSIONS_CATALOG: dict[str, tuple[str, str]] = {
+    "appindicator":                ("AppIndicator",     "System tray icon support"),
+    "dash-to-dock":                ("Dash to Dock",     "Customisable dock panel"),
+    "gsconnect":                   ("GSConnect",        "KDE Connect integration — pair with Android"),
+    "gtk4-desktop-icons-ng-ding":  ("Desktop Icons NG", "Show files and folders on the desktop"),
+}
 
 # Curated list of Flatpak apps shown as checkboxes in the GUI.
 # Format: { flatpak_id: (display_name, subtitle) }

@@ -16,10 +16,12 @@ from kanal.constants import (
     DRY_RUN,
     FLATPAK_CATALOG,
     FLAKE_REPO,
+    GNOME_EXTENSIONS_CATALOG,
     KEY_FEATURE_KIOSK,
     KEY_FEATURE_RUSTDESK,
     KEY_FEATURE_SSH,
     KEY_FLATPAK_PACKAGES,
+    KEY_GNOME_EXTENSIONS,
     KEY_HOSTNAME,
     KEY_KBLAYOUT,
     KEY_LOCALE,
@@ -45,7 +47,7 @@ from kanal.metadata import (
 from kanal.nixfiles import read_status, set_channel
 
 # Machine settings
-from kanal.machine import read_features, read_machine, save_features, save_machine, read_apps, save_apps
+from kanal.machine import read_features, read_machine, save_features, save_machine, read_apps, save_apps, read_extensions, save_extensions
 
 # Locale / keyboard helpers
 from kanal.locales import kbd_default_for_locale, list_kbd_layouts, list_locales
@@ -55,6 +57,7 @@ from kanal.privileged import (
     pkexec_apply,
     pkexec_apply_stream,
     pkexec_save_apps_stream,
+    pkexec_save_extensions_stream,
     pkexec_save_features_stream,
     pkexec_save_machine,
     pkexec_save_machine_stream,
@@ -65,8 +68,9 @@ from kanal.privileged import (
 __all__ = [
     # constants
     "ALL_FEATURES", "DRY_RUN", "FLATPAK_CATALOG", "FLAKE_REPO",
+    "GNOME_EXTENSIONS_CATALOG",
     "KEY_FEATURE_KIOSK", "KEY_FEATURE_RUSTDESK", "KEY_FEATURE_SSH",
-    "KEY_FLATPAK_PACKAGES",
+    "KEY_FLATPAK_PACKAGES", "KEY_GNOME_EXTENSIONS",
     "KEY_HOSTNAME", "KEY_KBLAYOUT", "KEY_LOCALE", "KEY_OP", "KEY_PRESET",
     "KEY_STATEVERSION", "KEY_TIMEZONE", "KEY_USERDESC", "KEY_USERNAME",
     "LOCAL_FLAKE_PATH", "MACHINE_PATH",
@@ -75,11 +79,13 @@ __all__ = [
     # nixfiles
     "read_status", "set_channel",
     # machine
-    "read_apps", "read_features", "read_machine", "save_apps", "save_features", "save_machine",
+    "read_apps", "read_extensions", "read_features", "read_machine",
+    "save_apps", "save_extensions", "save_features", "save_machine",
     # locales
     "kbd_default_for_locale", "list_kbd_layouts", "list_locales",
     # privileged
     "pkexec_apply", "pkexec_apply_stream", "pkexec_save_apps_stream",
+    "pkexec_save_extensions_stream",
     "pkexec_save_features_stream", "pkexec_save_machine", "pkexec_save_machine_stream",
     "pkexec_set", "run_upgrade",
 ]

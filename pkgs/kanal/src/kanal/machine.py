@@ -20,6 +20,7 @@ from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
     KEY_FLATPAK_PACKAGES,
+    KEY_GNOME_EXTENSIONS,
     KEY_HOSTNAME,
     KEY_KBLAYOUT,
     KEY_LOCALE,
@@ -185,6 +186,35 @@ def save_apps(app_ids: list[str]) -> None:
 
     if DRY_RUN:
         print(f"[kanal dry-run] would write apps to {MACHINE_PATH}:\n{contents}", flush=True)
+        return
+
+    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MACHINE_PATH.write_text(contents)
+
+
+def read_extensions() -> list[str]:
+    """Return the list of enabled GNOME extension IDs from machine.nix (no root required)."""
+    if MACHINE_PATH.exists():
+        result = _get_list(MACHINE_PATH.read_text(), KEY_GNOME_EXTENSIONS)
+        if result is not None:
+            return result
+    return []
+
+
+def save_extensions(ext_ids: list[str]) -> None:
+    """Write GNOME extensions list to machine.nix (must be called as root)."""
+    if MACHINE_PATH.exists():
+        contents = MACHINE_PATH.read_text()
+    else:
+        contents = _DEFAULT_MACHINE
+
+    if ext_ids:
+        contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, ext_ids)
+    else:
+        contents = _remove_key(contents, KEY_GNOME_EXTENSIONS)
+
+    if DRY_RUN:
+        print(f"[kanal dry-run] would write extensions to {MACHINE_PATH}:\n{contents}", flush=True)
         return
 
     MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
