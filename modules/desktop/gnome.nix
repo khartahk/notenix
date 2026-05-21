@@ -188,8 +188,8 @@ in
       wantedBy    = [ "default.target" ];
       after       = [ "basic.target" ];
       serviceConfig = {
-        Type      = "oneshot";
-        ExecStart = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update";
+        Type            = "oneshot";
+        ExecStart       = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update --force";
         RemainAfterExit = true;
       };
     };
