@@ -127,6 +127,24 @@ def _cmd_set_apps(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_set_extensions(args: argparse.Namespace) -> int:
+    ext_ids: list[str] = args.extensions or []
+    try:
+        backend.save_extensions(ext_ids)
+    except OSError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print("GNOME extension list saved.", flush=True)
+    if args.rebuild:
+        status = backend.read_status()
+        print(f"Running nixos-rebuild {status.operation}…", flush=True)
+        rc, _ = backend.run_upgrade(status.channel, status.operation)
+        if rc != 0:
+            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
+        return rc
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="kanalctl",
