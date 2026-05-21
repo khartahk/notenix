@@ -188,10 +188,8 @@ HWSTUB
 
     echo ""
     echo "→ Detecting hardware…"
-    nixos-generate-config --root /mnt
-    # Remove fileSystems entries — disko manages those via partlabels
-    sed -i '/fileSystems\./,/^  };/d' /mnt/etc/nixos/hardware-configuration.nix
-    sed -i '/swapDevices/d' /mnt/etc/nixos/hardware-configuration.nix
+    # --no-filesystems: disko manages mounts; we only want kernel/initrd/hardware bits
+    nixos-generate-config --no-filesystems --root /mnt
     # Remove generated configuration.nix — we use flake.nix + machine.nix instead
     rm -f /mnt/etc/nixos/configuration.nix
 
