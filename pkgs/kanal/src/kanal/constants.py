@@ -47,6 +47,7 @@ FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
     "com.obsproject.Studio":          ("OBS Studio",      "Screen recording and streaming"),
     "org.videolan.VLC":               ("VLC",             "Media player"),
     "com.github.tchx84.Flatseal":     ("Flatseal",        "Manage Flatpak permissions"),
+    "com.rustdesk.RustDesk":          ("RustDesk",        "Remote desktop"),
 }
 
 KEY_HOSTNAME     = "notenix.system.install.hostName"
