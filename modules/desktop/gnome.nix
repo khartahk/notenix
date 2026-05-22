@@ -180,17 +180,21 @@ in
     networking.firewall.allowedTCPPortRanges = [{ from = 1714; to = 1764; }];
     networking.firewall.allowedUDPPortRanges = [{ from = 1714; to = 1764; }];
 
-    # Ensure xdg-user-dirs-gtk prompts to rename folders to the current locale
-    # on first login. Without this, user-dirs.locale is never written and the
-    # rename prompt never fires on a fresh NixOS install.
+    # Run xdg-user-dirs-update with correct LANG and TEXTDOMAINDIR so it finds
+    # its own translations in the Nix store (they live in the package, not /usr/share/locale).
+    # This mirrors what gnome-initial-setup does on standard distros.
     systemd.user.services.xdg-user-dirs-init = {
       description = "Initialise XDG user directories for current locale";
       wantedBy    = [ "default.target" ];
       after       = [ "basic.target" ];
+      environment = {
+        LANG           = config.i18n.defaultLocale;
+        TEXTDOMAINDIR  = "${pkgs.xdg-user-dirs}/share/locale";
+      };
       serviceConfig = {
         Type            = "oneshot";
-        ExecStart       = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update --force";
         RemainAfterExit = true;
+        ExecStart       = "${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update --force";
       };
     };
   };
