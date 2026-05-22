@@ -52,8 +52,11 @@ def _env_fallbacks() -> dict[str, str]:
 
     try:
         pw = pwd.getpwuid(os.getuid())
-        fallbacks[KEY_USERNAME] = pw.pw_name
-        fallbacks[KEY_USERDESC] = pw.pw_gecos.split(",")[0] or pw.pw_name
+        # Never fall back to root — pkexec/kanalctl runs as uid 0 and we must
+        # not propagate "root" as the machine username into machine.nix.
+        if pw.pw_name != "root":
+            fallbacks[KEY_USERNAME] = pw.pw_name
+            fallbacks[KEY_USERDESC] = pw.pw_gecos.split(",")[0] or pw.pw_name
     except Exception:
         pass
 
