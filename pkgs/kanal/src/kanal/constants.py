@@ -16,7 +16,7 @@ from pathlib import Path
 LOCAL_FLAKE_PATH  = Path("/etc/nixos/flake.nix")
 MACHINE_PATH      = Path("/etc/nixos/machine.nix")
 LOCAL_FLAKE_ATTR  = "notenix"          # nixosConfigurations.<attr>
-FLAKE_REPO        = "github:n1x05/notenix"
+FLAKE_REPO        = "path:/etc/nixos"   # autoupgrade always builds from local flake; branch is set via inputs.notenix.url in flake.nix
 NIXOS_REBUILD_BIN = Path("/run/current-system/sw/bin/nixos-rebuild")
 NIX_BIN           = Path("/run/current-system/sw/bin/nix")
 

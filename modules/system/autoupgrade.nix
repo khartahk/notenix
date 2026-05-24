@@ -60,9 +60,9 @@ in
 
     flakeRepo = mkOption {
       type    = types.str;
-      default = "github:n1x05/notenix";
-      example = "path:/etc/nixos";
-      description = "Flake URL of the NixOS configuration repository.";
+      default = "path:/etc/nixos";
+      example = "github:n1x05/notenix/unstable";
+      description = "Flake URL of the NixOS configuration repository. Use path:/etc/nixos to build from the local flake (includes machine.nix). Branch is controlled by inputs.notenix.url in /etc/nixos/flake.nix.";
     };
 
     dates = mkOption {

@@ -288,6 +288,8 @@ def set_channel(
         machine_contents = _upsert_value(machine_contents, KEY_OP, operation)
     else:
         machine_contents = _remove_key(machine_contents, KEY_OP)
+    # Always ensure flakeRepo points to local flake so nixos-upgrade builds
+    # with machine.nix included. Branch is controlled by inputs.notenix.url above.
     machine_contents = _upsert_value(machine_contents, KEY_FLAKEREPO, FLAKE_REPO)
 
     if DRY_RUN:
