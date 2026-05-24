@@ -1,4 +1,4 @@
-{ config, lib, pkgs-unstable, ... }:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 
 # Optional feature flags that can be toggled independently of the preset.
 # Written to machine.nix by kanal; each defaults to false so the base system
