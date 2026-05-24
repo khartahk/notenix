@@ -97,6 +97,7 @@ in
       # Provide ZFS userspace tools only. No initrd integration, no auto-import.
       # Load kernel module manually before use: sudo modprobe zfs
       boot.kernelPackages = mkForce pkgs.linuxPackages_6_12;
+      boot.extraModulePackages = [ config.boot.kernelPackages.${pkgs.zfs.kernelModuleAttribute} ];
       environment.systemPackages = [ pkgs.zfs ];
       networking.hostId = mkDefault (
         builtins.substring 0 8 (builtins.hashString "sha256" config.networking.hostName)
