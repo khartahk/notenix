@@ -94,9 +94,13 @@ in
     })
 
     (mkIf cfg.zfs {
-      boot.supportedFilesystems = [ "zfs" ];
+      # Load ZFS as a post-boot kernel module only.
+      # Do NOT add to initrd — the system root is not ZFS and initrd scanning
+      # causes boot panics when a foreign pool is connected.
       boot.kernelPackages = mkForce pkgs.linuxPackages_6_12;
-      # hostId is required by NixOS ZFS; derive a stable value from the hostname.
+      boot.extraModulePackages = [ config.boot.kernelPackages.zfs ];
+      boot.kernelModules = [ "zfs" ];
+      # hostId is required by ZFS tooling.
       networking.hostId = mkDefault (
         builtins.substring 0 8 (builtins.hashString "sha256" config.networking.hostName)
       );
