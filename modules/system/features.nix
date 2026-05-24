@@ -40,6 +40,12 @@ in
       default     = false;
       description = "Enable Canon UFR II printer drivers (LBP/MF series, e.g. LBP633CDW).";
     };
+
+    zfs = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable ZFS kernel module support for mounting ZFS pools.";
+    };
   };
 
   config = mkMerge [
@@ -85,6 +91,15 @@ in
     (mkIf cfg.canonPrinter {
       services.printing.enable = true;
       services.printing.drivers = [ pkgs.canon-cups-ufr2 ];
+    })
+
+    (mkIf cfg.zfs {
+      boot.supportedFilesystems = [ "zfs" ];
+      boot.kernelPackages = mkForce pkgs.linuxPackages_6_12;
+      # hostId is required by NixOS ZFS; derive a stable value from the hostname.
+      networking.hostId = mkDefault (
+        builtins.substring 0 8 (builtins.hashString "sha256" config.networking.hostName)
+      );
     })
   ];
 }
