@@ -46,6 +46,12 @@ in
       default     = false;
       description = "Enable ZFS kernel module support for mounting ZFS pools.";
     };
+
+    tailscale = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable Tailscale VPN. Adds tailscale-status GNOME extension when GNOME is active.";
+    };
   };
 
   config = mkMerge [
@@ -102,6 +108,14 @@ in
       networking.hostId = mkDefault (
         builtins.substring 0 8 (builtins.hashString "sha256" config.networking.hostName)
       );
+    })
+
+    (mkIf cfg.tailscale {
+      services.tailscale.enable = true;
+      networking.firewall.trustedInterfaces = [ "tailscale0" ];
+      # Add tailscale-status extension when GNOME is active.
+      notenix.desktop.gnome.extensions = mkIf config.notenix.desktop.gnome.enable
+        (lib.mkAfter [ "tailscale-status" ]);
     })
   ];
 }

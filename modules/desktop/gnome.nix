@@ -10,6 +10,7 @@ let
     "dash-to-dock"                = pkgs.gnomeExtensions.dash-to-dock;
     "gsconnect"                   = pkgs.gnomeExtensions.gsconnect;
     "gtk4-desktop-icons-ng-ding"  = pkgs-unstable.gnomeExtensions.gtk4-desktop-icons-ng-ding;
+    "tailscale-status"            = pkgs.gnomeExtensions.tailscale-status;
   };
   _activeExtIds  = builtins.filter (id: builtins.hasAttr id _extPkgs) cfg.extensions;
   _activeExtPkgs = map (id: _extPkgs.${id}) _activeExtIds;

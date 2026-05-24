@@ -96,6 +96,7 @@ def _cmd_set_features(args: argparse.Namespace) -> int:
     if args.nvidia is not None:        features[backend.KEY_FEATURE_NVIDIA]        = args.nvidia
     if args.canon_printer is not None: features[backend.KEY_FEATURE_CANON_PRINTER] = args.canon_printer
     if args.zfs is not None:           features[backend.KEY_FEATURE_ZFS]           = args.zfs
+    if args.tailscale is not None:     features[backend.KEY_FEATURE_TAILSCALE]     = args.tailscale
     try:
         backend.save_features(features)
     except OSError as exc:
@@ -205,8 +206,10 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--no-nvidia",        dest="nvidia",        action="store_false")
     f.add_argument("--canon-printer",    dest="canon_printer", action="store_true",  default=None)
     f.add_argument("--no-canon-printer", dest="canon_printer", action="store_false")
-    f.add_argument("--zfs",    dest="zfs", action="store_true",  default=None)
-    f.add_argument("--no-zfs", dest="zfs", action="store_false")
+    f.add_argument("--zfs",           dest="zfs",       action="store_true",  default=None)
+    f.add_argument("--no-zfs",        dest="zfs",       action="store_false")
+    f.add_argument("--tailscale",     dest="tailscale", action="store_true",  default=None)
+    f.add_argument("--no-tailscale",  dest="tailscale", action="store_false")
     f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     f.set_defaults(func=_cmd_set_features)
 

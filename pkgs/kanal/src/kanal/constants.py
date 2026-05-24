@@ -34,8 +34,9 @@ KEY_FEATURE_RUSTDESK     = "notenix.features.rustdesk"
 KEY_FEATURE_NVIDIA       = "notenix.features.nvidia"
 KEY_FEATURE_CANON_PRINTER = "notenix.features.canonPrinter"
 KEY_FEATURE_ZFS          = "notenix.features.zfs"
+KEY_FEATURE_TAILSCALE    = "notenix.features.tailscale"
 
-ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK, KEY_FEATURE_NVIDIA, KEY_FEATURE_CANON_PRINTER, KEY_FEATURE_ZFS]
+ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK, KEY_FEATURE_NVIDIA, KEY_FEATURE_CANON_PRINTER, KEY_FEATURE_ZFS, KEY_FEATURE_TAILSCALE]
 
 KEY_FLATPAK_PACKAGES  = "notenix.applications.flatpak.packages"
 KEY_GNOME_EXTENSIONS  = "notenix.desktop.gnome.extensions"
@@ -47,6 +48,7 @@ GNOME_EXTENSIONS_CATALOG: dict[str, tuple[str, str]] = {
     "dash-to-dock":                ("Dash to Dock",     "Customisable dock panel"),
     "gsconnect":                   ("GSConnect",        "KDE Connect integration — pair with Android"),
     "gtk4-desktop-icons-ng-ding":  ("Desktop Icons NG", "Show files and folders on the desktop"),
+    "tailscale-status":            ("Tailscale Status", "Tailscale VPN status indicator in the top bar"),
 }
 
 # Curated list of Flatpak apps shown as checkboxes in the GUI.
