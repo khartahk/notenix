@@ -19,6 +19,7 @@ from pathlib import Path
 from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
+    KEY_FEATURE_TAILSCALE,
     KEY_FLATPAK_PACKAGES,
     KEY_GNOME_EXTENSIONS,
     KEY_HOSTNAME,
@@ -29,6 +30,7 @@ from kanal.constants import (
     KEY_USERDESC,
     KEY_USERNAME,
     MACHINE_PATH,
+    TAILSCALE_EXT_ID,
 )
 from kanal.nixfiles import _get_value, _get_list, _remove_key, _upsert_bool, _upsert_list, _upsert_value
 
@@ -157,6 +159,20 @@ def save_features(features: dict[str, bool]) -> None:
             contents = _upsert_bool(contents, key, True)
         else:
             contents = _remove_key(contents, key)
+
+    # Sync tailscale-status into the GNOME extensions list automatically.
+    if KEY_FEATURE_TAILSCALE in features:
+        exts = _get_list(contents, KEY_GNOME_EXTENSIONS) or []
+        tailscale_on = features[KEY_FEATURE_TAILSCALE]
+        if tailscale_on and TAILSCALE_EXT_ID not in exts:
+            exts = exts + [TAILSCALE_EXT_ID]
+            contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, exts)
+        elif not tailscale_on and TAILSCALE_EXT_ID in exts:
+            exts = [e for e in exts if e != TAILSCALE_EXT_ID]
+            if exts:
+                contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, exts)
+            else:
+                contents = _remove_key(contents, KEY_GNOME_EXTENSIONS)
 
     if DRY_RUN:
         print(f"[kanal dry-run] would write features to {MACHINE_PATH}:\n{contents}", flush=True)

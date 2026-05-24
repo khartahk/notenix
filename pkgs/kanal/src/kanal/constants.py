@@ -35,6 +35,7 @@ KEY_FEATURE_NVIDIA       = "notenix.features.nvidia"
 KEY_FEATURE_CANON_PRINTER = "notenix.features.canonPrinter"
 KEY_FEATURE_ZFS          = "notenix.features.zfs"
 KEY_FEATURE_TAILSCALE    = "notenix.features.tailscale"
+TAILSCALE_EXT_ID         = "tailscale-status"
 
 ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK, KEY_FEATURE_NVIDIA, KEY_FEATURE_CANON_PRINTER, KEY_FEATURE_ZFS, KEY_FEATURE_TAILSCALE]
 

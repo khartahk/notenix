@@ -113,19 +113,12 @@ in
     (mkIf cfg.tailscale {
       services.tailscale.enable = true;
       networking.firewall.trustedInterfaces = [ "tailscale0" ];
-      # Install + enable tailscale-status extension when GNOME is active,
-      # without touching notenix.desktop.gnome.extensions (which machine.nix owns via mkForce).
+      # Install tailscale-status extension when GNOME is active.
+      # Enabling is handled by adding it to notenix.desktop.gnome.extensions via mkForce
+      # so it merges with the user's list at the right priority.
       environment.systemPackages = mkIf config.notenix.desktop.gnome.enable [
         pkgs.gnomeExtensions.tailscale-status
       ];
-      programs.dconf.profiles.user.databases = mkIf config.notenix.desktop.gnome.enable (lib.mkAfter [
-        {
-          lockAll = false;
-          settings."org/gnome/shell".enabled-extensions = lib.mkAfter [
-            pkgs.gnomeExtensions.tailscale-status.extensionUuid
-          ];
-        }
-      ]);
     })
   ];
 }
