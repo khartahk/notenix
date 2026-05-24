@@ -98,7 +98,7 @@ in
       # Do NOT add to initrd — the system root is not ZFS and initrd scanning
       # causes boot panics when a foreign pool is connected.
       boot.kernelPackages = mkForce pkgs.linuxPackages_6_12;
-      boot.extraModulePackages = [ config.boot.kernelPackages.zfs ];
+      boot.extraModulePackages = [ config.boot.kernelPackages.${pkgs.zfs.kernelModuleAttribute} ];
       boot.kernelModules = [ "zfs" ];
       # hostId is required by ZFS tooling.
       networking.hostId = mkDefault (
