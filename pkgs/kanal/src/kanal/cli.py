@@ -93,6 +93,7 @@ def _cmd_set_features(args: argparse.Namespace) -> int:
     if args.ssh is not None:      features[backend.KEY_FEATURE_SSH]      = args.ssh
     if args.kiosk is not None:    features[backend.KEY_FEATURE_KIOSK]    = args.kiosk
     if args.rustdesk is not None: features[backend.KEY_FEATURE_RUSTDESK] = args.rustdesk
+    if args.nvidia is not None:   features[backend.KEY_FEATURE_NVIDIA]   = args.nvidia
     try:
         backend.save_features(features)
     except OSError as exc:
@@ -198,6 +199,8 @@ def build_parser() -> argparse.ArgumentParser:
     f.add_argument("--no-kiosk",    dest="kiosk",    action="store_false")
     f.add_argument("--rustdesk",    dest="rustdesk", action="store_true",  default=None)
     f.add_argument("--no-rustdesk", dest="rustdesk", action="store_false")
+    f.add_argument("--nvidia",      dest="nvidia",   action="store_true",  default=None)
+    f.add_argument("--no-nvidia",   dest="nvidia",   action="store_false")
     f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     f.set_defaults(func=_cmd_set_features)
 
