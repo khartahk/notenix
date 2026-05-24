@@ -31,8 +31,9 @@ KEY_PRESET       = "notenix.preset"
 KEY_FEATURE_SSH      = "notenix.features.ssh"
 KEY_FEATURE_KIOSK    = "notenix.features.kiosk"
 KEY_FEATURE_RUSTDESK = "notenix.features.rustdesk"
+KEY_FEATURE_NVIDIA   = "notenix.features.nvidia"
 
-ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK]
+ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK, KEY_FEATURE_NVIDIA]
 
 KEY_FLATPAK_PACKAGES  = "notenix.applications.flatpak.packages"
 KEY_GNOME_EXTENSIONS  = "notenix.desktop.gnome.extensions"

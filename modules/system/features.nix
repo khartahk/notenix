@@ -28,6 +28,12 @@ in
       default     = false;
       description = "RustDesk remote desktop server (allows remote access to this machine).";
     };
+
+    nvidia = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable NVIDIA proprietary drivers.";
+    };
   };
 
   config = mkMerge [
@@ -57,6 +63,17 @@ in
       environment.systemPackages = [ pkgs-unstable.rustdesk ];
       networking.firewall.allowedTCPPorts = [ 21115 21116 21117 21118 21119 ];
       networking.firewall.allowedUDPPorts = [ 21116 ];
+    })
+
+    (mkIf cfg.nvidia {
+      services.xserver.videoDrivers = [ "nvidia" ];
+      hardware.nvidia = {
+        modesetting.enable = true;
+        open               = false;
+        nvidiaSettings     = true;
+        package            = config.boot.kernelPackages.nvidiaPackages.stable;
+      };
+      hardware.graphics.enable = true;
     })
   ];
 }

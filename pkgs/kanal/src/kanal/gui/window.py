@@ -219,6 +219,12 @@ class ChannelWindow(Adw.Window):
         self._rustdesk_row.set_active(features.get(backend.KEY_FEATURE_RUSTDESK, False))
         feat_group.add(self._rustdesk_row)
 
+        self._nvidia_row = Adw.SwitchRow()
+        self._nvidia_row.set_title("NVIDIA drivers")
+        self._nvidia_row.set_subtitle("Proprietary NVIDIA graphics drivers")
+        self._nvidia_row.set_active(features.get(backend.KEY_FEATURE_NVIDIA, False))
+        feat_group.add(self._nvidia_row)
+
         self._stack.add_titled(features_page, "features", "Features")
 
         # ══ Extensions page ═══════════════════════════════════════════════════
@@ -550,6 +556,7 @@ class ChannelWindow(Adw.Window):
             backend.KEY_FEATURE_SSH:      self._ssh_row.get_active(),
             backend.KEY_FEATURE_KIOSK:    self._kiosk_row.get_active(),
             backend.KEY_FEATURE_RUSTDESK: self._rustdesk_row.get_active(),
+            backend.KEY_FEATURE_NVIDIA:   self._nvidia_row.get_active(),
         }
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()
