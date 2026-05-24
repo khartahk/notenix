@@ -113,9 +113,19 @@ in
     (mkIf cfg.tailscale {
       services.tailscale.enable = true;
       networking.firewall.trustedInterfaces = [ "tailscale0" ];
-      # Add tailscale-status extension when GNOME is active.
-      notenix.desktop.gnome.extensions = mkIf config.notenix.desktop.gnome.enable
-        (lib.mkAfter [ "tailscale-status" ]);
+      # Install + enable tailscale-status extension when GNOME is active,
+      # without touching notenix.desktop.gnome.extensions (which machine.nix owns via mkForce).
+      environment.systemPackages = mkIf config.notenix.desktop.gnome.enable [
+        pkgs.gnomeExtensions.tailscale-status
+      ];
+      programs.dconf.profiles.user.databases = mkIf config.notenix.desktop.gnome.enable (lib.mkAfter [
+        {
+          lockAll = false;
+          settings."org/gnome/shell".enabled-extensions = lib.mkAfter [
+            pkgs.gnomeExtensions.tailscale-status.extensionUuid
+          ];
+        }
+      ]);
     })
   ];
 }
