@@ -225,6 +225,12 @@ class ChannelWindow(Adw.Window):
         self._nvidia_row.set_active(features.get(backend.KEY_FEATURE_NVIDIA, False))
         feat_group.add(self._nvidia_row)
 
+        self._canon_printer_row = Adw.SwitchRow()
+        self._canon_printer_row.set_title("Canon printer")
+        self._canon_printer_row.set_subtitle("UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)")
+        self._canon_printer_row.set_active(features.get(backend.KEY_FEATURE_CANON_PRINTER, False))
+        feat_group.add(self._canon_printer_row)
+
         self._stack.add_titled(features_page, "features", "Features")
 
         # ══ Extensions page ═══════════════════════════════════════════════════
@@ -553,10 +559,11 @@ class ChannelWindow(Adw.Window):
 
     def _on_save_features_clicked(self, _btn):
         features = {
-            backend.KEY_FEATURE_SSH:      self._ssh_row.get_active(),
-            backend.KEY_FEATURE_KIOSK:    self._kiosk_row.get_active(),
-            backend.KEY_FEATURE_RUSTDESK: self._rustdesk_row.get_active(),
-            backend.KEY_FEATURE_NVIDIA:   self._nvidia_row.get_active(),
+            backend.KEY_FEATURE_SSH:           self._ssh_row.get_active(),
+            backend.KEY_FEATURE_KIOSK:         self._kiosk_row.get_active(),
+            backend.KEY_FEATURE_RUSTDESK:      self._rustdesk_row.get_active(),
+            backend.KEY_FEATURE_NVIDIA:        self._nvidia_row.get_active(),
+            backend.KEY_FEATURE_CANON_PRINTER: self._canon_printer_row.get_active(),
         }
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()

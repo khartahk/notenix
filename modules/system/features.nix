@@ -34,6 +34,12 @@ in
       default     = false;
       description = "Enable NVIDIA proprietary drivers.";
     };
+
+    canonPrinter = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable Canon UFR II printer drivers (LBP/MF series, e.g. LBP633CDW).";
+    };
   };
 
   config = mkMerge [
@@ -74,6 +80,11 @@ in
         package            = config.boot.kernelPackages.nvidiaPackages.stable;
       };
       hardware.graphics.enable = true;
+    })
+
+    (mkIf cfg.canonPrinter {
+      services.printing.enable = true;
+      services.printing.drivers = [ pkgs.canon-cups-ufr2 ];
     })
   ];
 }
