@@ -34,7 +34,7 @@
             gobject-introspection
           ];
           buildInputs = with pkgs; [ gtk4 libadwaita glibc ];
-          dependencies = [ pkgs.python3Packages.pygobject3 ];
+          dependencies = with pkgs.python3Packages; [ pygobject3 pyyaml ];
           postInstall = ''
             install -Dm644 si.n1x05.notenix.kanal.desktop \
               $out/share/applications/si.n1x05.notenix.kanal.desktop

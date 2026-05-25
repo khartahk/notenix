@@ -201,53 +201,14 @@ class ChannelWindow(Adw.Window):
         feat_group.set_description("These are applied on top of the selected preset")
         features_page.add(feat_group)
 
-        self._ssh_row = Adw.SwitchRow()
-        self._ssh_row.set_title("SSH server")
-        self._ssh_row.set_subtitle("OpenSSH — password auth, root login disabled")
-        self._ssh_row.set_active(features.get(backend.KEY_FEATURE_SSH, False))
-        feat_group.add(self._ssh_row)
-
-        self._kiosk_row = Adw.SwitchRow()
-        self._kiosk_row.set_title("Kiosk mode")
-        self._kiosk_row.set_subtitle("Auto-login, no screen lock")
-        self._kiosk_row.set_active(features.get(backend.KEY_FEATURE_KIOSK, False))
-        feat_group.add(self._kiosk_row)
-
-        self._rustdesk_row = Adw.SwitchRow()
-        self._rustdesk_row.set_title("RustDesk")
-        self._rustdesk_row.set_subtitle("Remote desktop — allows controlling this machine remotely")
-        self._rustdesk_row.set_active(features.get(backend.KEY_FEATURE_RUSTDESK, False))
-        feat_group.add(self._rustdesk_row)
-
-        self._nvidia_row = Adw.SwitchRow()
-        self._nvidia_row.set_title("NVIDIA drivers")
-        self._nvidia_row.set_subtitle("Proprietary NVIDIA graphics drivers")
-        self._nvidia_row.set_active(features.get(backend.KEY_FEATURE_NVIDIA, False))
-        feat_group.add(self._nvidia_row)
-
-        self._canon_printer_row = Adw.SwitchRow()
-        self._canon_printer_row.set_title("Canon printer")
-        self._canon_printer_row.set_subtitle("UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)")
-        self._canon_printer_row.set_active(features.get(backend.KEY_FEATURE_CANON_PRINTER, False))
-        feat_group.add(self._canon_printer_row)
-
-        self._zfs_row = Adw.SwitchRow()
-        self._zfs_row.set_title("ZFS support")
-        self._zfs_row.set_subtitle("Enable ZFS kernel module for mounting ZFS pools")
-        self._zfs_row.set_active(features.get(backend.KEY_FEATURE_ZFS, False))
-        feat_group.add(self._zfs_row)
-
-        self._tailscale_row = Adw.SwitchRow()
-        self._tailscale_row.set_title("Tailscale")
-        self._tailscale_row.set_subtitle("Tailscale VPN (adds status indicator to GNOME top bar)")
-        self._tailscale_row.set_active(features.get(backend.KEY_FEATURE_TAILSCALE, False))
-        feat_group.add(self._tailscale_row)
-
-        self._logitech_wireless_row = Adw.SwitchRow()
-        self._logitech_wireless_row.set_title("Logitech Wireless")
-        self._logitech_wireless_row.set_subtitle("Solaar device manager + udev rules for Unifying/Bolt receivers")
-        self._logitech_wireless_row.set_active(features.get(backend.KEY_FEATURE_LOGITECH_WIRELESS, False))
-        feat_group.add(self._logitech_wireless_row)
+        self._feat_rows: dict[str, Adw.SwitchRow] = {}
+        for feat in backend.get_feature_catalog():
+            row = Adw.SwitchRow()
+            row.set_title(feat["title"])
+            row.set_subtitle(feat["subtitle"])
+            row.set_active(features.get(feat["key"], feat["default"]))
+            feat_group.add(row)
+            self._feat_rows[feat["key"]] = row
 
         self._stack.add_titled(features_page, "features", "Features")
 
@@ -577,14 +538,8 @@ class ChannelWindow(Adw.Window):
 
     def _on_save_features_clicked(self, _btn):
         features = {
-            backend.KEY_FEATURE_SSH:           self._ssh_row.get_active(),
-            backend.KEY_FEATURE_KIOSK:         self._kiosk_row.get_active(),
-            backend.KEY_FEATURE_RUSTDESK:      self._rustdesk_row.get_active(),
-            backend.KEY_FEATURE_NVIDIA:        self._nvidia_row.get_active(),
-            backend.KEY_FEATURE_CANON_PRINTER: self._canon_printer_row.get_active(),
-            backend.KEY_FEATURE_ZFS:                    self._zfs_row.get_active(),
-            backend.KEY_FEATURE_TAILSCALE:              self._tailscale_row.get_active(),
-            backend.KEY_FEATURE_LOGITECH_WIRELESS:      self._logitech_wireless_row.get_active(),
+            feat["key"]: self._feat_rows[feat["key"]].get_active()
+            for feat in backend.get_feature_catalog()
         }
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()

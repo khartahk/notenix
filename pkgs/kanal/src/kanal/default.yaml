@@ -1,0 +1,75 @@
+# Feature catalog for notenix/kanal.
+# Each entry defines one feature flag toggle in the GUI and one NixOS option.
+#
+# Fields:
+#   key      - NixOS option path written to machine.nix
+#   id       - camelCase NixOS option name (last segment of key)
+#   const    - Python constant suffix for KEY_FEATURE_<const> (backward compat)
+#   title    - Display name in the GUI
+#   subtitle - Description in the GUI
+#   default  - Default value (always false; NixOS module defaults match)
+#   extra    - Optional side-effect applied when the feature is toggled (see types below)
+#
+# extra types:
+#   gnome_extension:
+#     value: <extension-id>  — synced into notenix.desktop.gnome.extensions
+
+features:
+  - key: notenix.features.ssh
+    id: ssh
+    const: SSH
+    title: SSH server
+    subtitle: "OpenSSH — password auth, root login disabled"
+    default: false
+
+  - key: notenix.features.kiosk
+    id: kiosk
+    const: KIOSK
+    title: Kiosk mode
+    subtitle: "Auto-login, no screen lock"
+    default: false
+
+  - key: notenix.features.rustdesk
+    id: rustdesk
+    const: RUSTDESK
+    title: RustDesk
+    subtitle: "Remote desktop — allows controlling this machine remotely"
+    default: false
+
+  - key: notenix.features.nvidia
+    id: nvidia
+    const: NVIDIA
+    title: NVIDIA drivers
+    subtitle: "Proprietary NVIDIA graphics drivers"
+    default: false
+
+  - key: notenix.features.canonPrinter
+    id: canonPrinter
+    const: CANON_PRINTER
+    title: Canon printer
+    subtitle: "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
+    default: false
+
+  - key: notenix.features.zfs
+    id: zfs
+    const: ZFS
+    title: ZFS support
+    subtitle: "Enable ZFS kernel module for mounting ZFS pools"
+    default: false
+
+  - key: notenix.features.tailscale
+    id: tailscale
+    const: TAILSCALE
+    title: Tailscale
+    subtitle: "Tailscale VPN (adds status indicator to GNOME top bar)"
+    default: false
+    extra:
+      type: gnome_extension
+      value: tailscale-status
+
+  - key: notenix.features.logitechWireless
+    id: logitechWireless
+    const: LOGITECH_WIRELESS
+    title: Logitech Wireless
+    subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
+    default: false

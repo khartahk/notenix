@@ -16,5 +16,8 @@ kanalctl = "kanal.__main__:main_ctl"
 package-dir = {"" = "src"}
 packages    = ["kanal", "kanal.gui"]
 
+[tool.setuptools.package-data]
+kanal = ["*.yaml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

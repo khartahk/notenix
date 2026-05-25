@@ -6,8 +6,11 @@ import time.  Every other module imports from here; nothing imports back.
 
 from __future__ import annotations
 
+import importlib.resources
 import os
 from pathlib import Path
+
+import yaml
 
 # ---------------------------------------------------------------------------
 # File paths
@@ -28,17 +31,29 @@ KEY_OP           = "notenix.system.autoupgrade.operation"
 KEY_FLAKEREPO    = "notenix.system.autoupgrade.flakeRepo"
 KEY_PRESET       = "notenix.preset"
 
-KEY_FEATURE_SSH          = "notenix.features.ssh"
-KEY_FEATURE_KIOSK        = "notenix.features.kiosk"
-KEY_FEATURE_RUSTDESK     = "notenix.features.rustdesk"
-KEY_FEATURE_NVIDIA       = "notenix.features.nvidia"
-KEY_FEATURE_CANON_PRINTER = "notenix.features.canonPrinter"
-KEY_FEATURE_ZFS                = "notenix.features.zfs"
-KEY_FEATURE_TAILSCALE          = "notenix.features.tailscale"
-KEY_FEATURE_LOGITECH_WIRELESS  = "notenix.features.logitechWireless"
-TAILSCALE_EXT_ID               = "tailscale-status"
+# ---------------------------------------------------------------------------
+# Feature catalog — loaded from default.yaml bundled in the package.
+# Adds per-feature backward-compat constants: KEY_FEATURE_SSH, etc.
+# ---------------------------------------------------------------------------
 
-ALL_FEATURES: list[str] = [KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, KEY_FEATURE_RUSTDESK, KEY_FEATURE_NVIDIA, KEY_FEATURE_CANON_PRINTER, KEY_FEATURE_ZFS, KEY_FEATURE_TAILSCALE, KEY_FEATURE_LOGITECH_WIRELESS]
+def _load_feature_catalog() -> list[dict]:
+    ref = importlib.resources.files("kanal").joinpath("default.yaml")
+    with importlib.resources.as_file(ref) as p:
+        return yaml.safe_load(p.read_text())["features"]
+
+
+FEATURE_CATALOG: list[dict] = _load_feature_catalog()
+
+ALL_FEATURES: list[str] = [f["key"] for f in FEATURE_CATALOG]
+
+# Backward-compat per-feature constants: KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, …
+for _f in FEATURE_CATALOG:
+    globals()[f"KEY_FEATURE_{_f['const']}"] = _f["key"]
+
+
+def get_feature_catalog() -> list[dict]:
+    """Return the feature catalog list loaded from default.yaml."""
+    return FEATURE_CATALOG
 
 KEY_FLATPAK_PACKAGES  = "notenix.applications.flatpak.packages"
 KEY_GNOME_EXTENSIONS  = "notenix.desktop.gnome.extensions"
