@@ -109,21 +109,27 @@ def _cmd_set_machine(args: argparse.Namespace) -> int:
                              "Machine settings saved.", args)
 
 
-def _cmd_set_features(args: argparse.Namespace) -> int:
-    features = {f["key"]: val
-                for f in backend.FEATURE_CATALOG
+# Dispatch: save_cmd → backend save function
+_TAB_SAVE_FN = {
+    tab["save_cmd"]: getattr(backend, tab["save_cmd"].replace("-", "_").replace("set_", "save_"))
+    for tab in backend.TAB_CATALOG
+}
+
+
+def _collect_tab_data(tab: dict, args: argparse.Namespace):
+    if tab["type"] == "bool_options":
+        return {f["key"]: val
+                for f in tab["items"]
                 if (val := getattr(args, f["id"], None)) is not None}
-    return _save_and_rebuild(backend.save_features, features, "Feature flags saved.", args)
+    return getattr(args, tab["id"]) or []  # list_option
 
 
-def _cmd_set_apps(args: argparse.Namespace) -> int:
-    return _save_and_rebuild(backend.save_apps, args.apps or [],
-                             "Flatpak app list saved.", args)
-
-
-def _cmd_set_extensions(args: argparse.Namespace) -> int:
-    return _save_and_rebuild(backend.save_extensions, args.extensions or [],
-                             "GNOME extension list saved.", args)
+def _make_tab_handler(tab: dict):
+    def handler(args: argparse.Namespace) -> int:
+        return _save_and_rebuild(_TAB_SAVE_FN[tab["save_cmd"]],
+                                 _collect_tab_data(tab, args),
+                                 f"{tab['title']} saved.", args)
+    return handler
 
 
 def _cmd_save_all(args: argparse.Namespace) -> int:
@@ -196,29 +202,20 @@ def build_parser() -> argparse.ArgumentParser:
     m.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     m.set_defaults(func=_cmd_set_machine)
 
-    # set-features
-    f = sub.add_parser("set-features", help="Enable/disable optional features (requires root)")
-    for feat in backend.FEATURE_CATALOG:
-        flag = feat["id"].replace("_", "-")
-        dest = feat["id"]
-        f.add_argument(f"--{flag}",    dest=dest, action="store_true",  default=None)
-        f.add_argument(f"--no-{flag}", dest=dest, action="store_false")
-    f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
-    f.set_defaults(func=_cmd_set_features)
-
-    # set-apps
-    ap = sub.add_parser("set-apps", help="Set Flatpak app list (requires root)")
-    ap.add_argument("apps", nargs="*", metavar="APP_ID",
-                    help="Flatpak app IDs to install (replaces current list; omit all to clear)")
-    ap.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
-    ap.set_defaults(func=_cmd_set_apps)
-
-    # set-extensions
-    ex = sub.add_parser("set-extensions", help="Set enabled GNOME extensions (requires root)")
-    ex.add_argument("extensions", nargs="*", metavar="EXT_ID",
-                    help="Extension IDs to enable (replaces current list; omit all to clear)")
-    ex.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
-    ex.set_defaults(func=_cmd_set_extensions)
+    # set-features / set-apps / set-extensions — generated from TAB_CATALOG
+    for tab in backend.TAB_CATALOG:
+        tp = sub.add_parser(tab["save_cmd"],
+                            help=f"Set {tab['title'].lower()} (requires root)")
+        if tab["type"] == "bool_options":
+            for feat in tab["items"]:
+                flag = feat["id"].replace("_", "-")
+                tp.add_argument(f"--{flag}",    dest=feat["id"], action="store_true",  default=None)
+                tp.add_argument(f"--no-{flag}", dest=feat["id"], action="store_false")
+        else:  # list_option
+            tp.add_argument(tab["id"], nargs="*", metavar="ID",
+                            help=f"{tab['title']} IDs (replaces current list; omit all to clear)")
+        tp.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
+        tp.set_defaults(func=_make_tab_handler(tab))
 
     # save-all
     sa = sub.add_parser("save-all", help="Save all settings atomically (requires root)")
