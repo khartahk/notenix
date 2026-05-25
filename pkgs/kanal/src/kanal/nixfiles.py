@@ -16,17 +16,7 @@ from __future__ import annotations
 
 import re
 
-from kanal.constants import (
-    DRY_RUN,
-    FLAKE_REPO,
-    FLAKE_REF,
-    KEY_FLAKEREPO,
-    KEY_OP,
-    KEY_PRESET,
-    LOCAL_FLAKE_ATTR,
-    LOCAL_FLAKE_PATH,
-    MACHINE_PATH,
-)
+import kanal.constants as _const
 from kanal.metadata import Status, channels, load_metadata, presets_for
 
 # ---------------------------------------------------------------------------
@@ -213,8 +203,8 @@ def read_status() -> Status:
     operation = "boot"
 
     # Determine active channel from inputs.notenix.url in flake.nix
-    if LOCAL_FLAKE_PATH.exists():
-        raw_url = _get_flake_url(LOCAL_FLAKE_PATH.read_text())
+    if _const.LOCAL_FLAKE_PATH.exists():
+        raw_url = _get_flake_url(_const.LOCAL_FLAKE_PATH.read_text())
         if raw_url:
             matched = next(
                 (k for k, v in ch_map.items() if v["flake"] == raw_url), None
@@ -223,10 +213,10 @@ def read_status() -> Status:
                 channel = matched
 
     # Determine preset and operation from machine.nix
-    if MACHINE_PATH.exists():
-        mc = MACHINE_PATH.read_text()
-        raw_op     = _get_value(mc, KEY_OP)
-        raw_preset = _get_value(mc, KEY_PRESET)
+    if _const.MACHINE_PATH.exists():
+        mc = _const.MACHINE_PATH.read_text()
+        raw_op     = _get_value(mc, _const.KEY_OP)
+        raw_preset = _get_value(mc, _const.KEY_PRESET)
 
         if raw_op in ("boot", "switch"):
             operation = raw_op
@@ -236,13 +226,13 @@ def read_status() -> Status:
         elif ch_presets:
             preset = ch_presets[0]
 
-    flake_url = ch_map.get(channel, {}).get("flake", FLAKE_REF)
+    flake_url = ch_map.get(channel, {}).get("flake", _const.FLAKE_REF)
     return Status(
         channel        = channel,
         flake_output   = flake_url,
         preset         = preset,
         operation      = operation,
-        overrides_path = str(MACHINE_PATH),
+        overrides_path = str(_const.MACHINE_PATH),
     )
 
 # ---------------------------------------------------------------------------
@@ -270,33 +260,33 @@ def set_channel(
 
     # --- flake.nix ---
     flake_contents = (
-        LOCAL_FLAKE_PATH.read_text()
-        if LOCAL_FLAKE_PATH.exists()
+        _const.LOCAL_FLAKE_PATH.read_text()
+        if _const.LOCAL_FLAKE_PATH.exists()
         else _DEFAULT_FLAKE
     )
     flake_contents = _set_flake_url(flake_contents, flake_url)
 
     # --- machine.nix ---
     machine_contents = (
-        MACHINE_PATH.read_text()
-        if MACHINE_PATH.exists()
+        _const.MACHINE_PATH.read_text()
+        if _const.MACHINE_PATH.exists()
         else _DEFAULT_MACHINE
     )
     if preset is not None:
-        machine_contents = _upsert_value(machine_contents, KEY_PRESET, preset)
+        machine_contents = _upsert_value(machine_contents, _const.KEY_PRESET, preset)
     if operation is not None:
-        machine_contents = _upsert_value(machine_contents, KEY_OP, operation)
+        machine_contents = _upsert_value(machine_contents, _const.KEY_OP, operation)
     else:
-        machine_contents = _remove_key(machine_contents, KEY_OP)
+        machine_contents = _remove_key(machine_contents, _const.KEY_OP)
     # Always ensure flakeRepo points to local flake so nixos-upgrade builds
     # with machine.nix included. Branch is controlled by inputs.notenix.url above.
-    machine_contents = _upsert_value(machine_contents, KEY_FLAKEREPO, FLAKE_REPO)
+    machine_contents = _upsert_value(machine_contents, _const.KEY_FLAKEREPO, _const.FLAKE_REPO)
 
-    if DRY_RUN:
-        print(f"[kanal dry-run] would write to {LOCAL_FLAKE_PATH}:\n{flake_contents}", flush=True)
-        print(f"[kanal dry-run] would write to {MACHINE_PATH}:\n{machine_contents}", flush=True)
+    if _const.DRY_RUN:
+        print(f"[kanal dry-run] would write to {_const.LOCAL_FLAKE_PATH}:\n{flake_contents}", flush=True)
+        print(f"[kanal dry-run] would write to {_const.MACHINE_PATH}:\n{machine_contents}", flush=True)
         return
 
-    LOCAL_FLAKE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    LOCAL_FLAKE_PATH.write_text(flake_contents)
-    MACHINE_PATH.write_text(machine_contents)
+    _const.LOCAL_FLAKE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _const.LOCAL_FLAKE_PATH.write_text(flake_contents)
+    _const.MACHINE_PATH.write_text(machine_contents)

@@ -14,16 +14,7 @@ import json
 import os
 import subprocess
 
-from kanal.constants import (
-    DRY_RUN,
-    KANALCTL_BIN,
-    LOCAL_FLAKE_ATTR,
-    LOCAL_FLAKE_PATH,
-    MACHINE_KEY_FLAGS,
-    NIX_BIN,
-    NIXOS_REBUILD_BIN,
-    TAB_CATALOG,
-)
+import kanal.constants as _const
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -31,7 +22,7 @@ from kanal.constants import (
 
 def _pkexec_stream(cmd: list[str], dry_msg: str):
     """Core: dry-run guard → Popen → yield lines → (None, returncode) sentinel."""
-    if DRY_RUN:
+    if _const.DRY_RUN:
         yield f"[kanal dry-run] {dry_msg}\n"
         yield None, 0
         return
@@ -47,24 +38,24 @@ def _pkexec_stream(cmd: list[str], dry_msg: str):
 
 
 # {nix_key: cli_flag} — loaded from default.yaml, no hardcoding needed
-_MACHINE_FLAGS = MACHINE_KEY_FLAGS
+_MACHINE_FLAGS = _const.MACHINE_KEY_FLAGS
 
 # ---------------------------------------------------------------------------
 # Direct rebuild (already root — called from kanalctl apply / save-all)
 # ---------------------------------------------------------------------------
 
-def run_upgrade(channel: str, operation: str) -> tuple[int, str]:
+def run_upgrade(operation: str) -> int:
     """Update the flake lock file and run ``nixos-rebuild``.
 
     Streams combined stdout+stderr to our own stdout so the GUI can capture it.
-    Returns ``(returncode, "")``.
+    Returns the nixos-rebuild exit code.
     """
-    flake_dir = str(LOCAL_FLAKE_PATH.parent)
-    flake_arg = f"path:/etc/nixos#{LOCAL_FLAKE_ATTR}"
+    flake_dir = str(_const.LOCAL_FLAKE_PATH.parent)
+    flake_arg = f"path:/etc/nixos#{_const.LOCAL_FLAKE_ATTR}"
 
     print("Updating flake inputs…", flush=True)
     update = subprocess.Popen(
-        [str(NIX_BIN), "flake", "update", "--flake", flake_dir],
+        [str(_const.NIX_BIN), "flake", "update", "--flake", flake_dir],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     for line in update.stdout:
@@ -72,16 +63,16 @@ def run_upgrade(channel: str, operation: str) -> tuple[int, str]:
     update.wait()
     if update.returncode != 0:
         print(f"nix flake update failed (exit {update.returncode})", flush=True)
-        return update.returncode, ""
+        return update.returncode
 
     proc = subprocess.Popen(
-        [str(NIXOS_REBUILD_BIN), operation, "--flake", flake_arg],
+        [str(_const.NIXOS_REBUILD_BIN), operation, "--flake", flake_arg],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
     )
     for line in proc.stdout:
         print(line, end="", flush=True)
     proc.wait()
-    return proc.returncode, ""
+    return proc.returncode
 
 # ---------------------------------------------------------------------------
 # pkexec helpers — prompt for root once, then run the kanalctl subcommand
@@ -95,8 +86,8 @@ def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
                   channel (str), operation (str), preset (str), flake_url (str).
     With rebuild=True also sets the channel and runs nixos-rebuild.
     """
-    cmd = ["pkexec", KANALCTL_BIN, "save-all"]
-    for tab in TAB_CATALOG:
+    cmd = ["pkexec", _const.KANALCTL_BIN, "save-all"]
+    for tab in _const.TAB_CATALOG:
         tab_id = tab["id"]
         data   = payload.get(tab_id)
         if tab["type"] == "bool_options":

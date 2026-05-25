@@ -56,7 +56,7 @@ def _cmd_apply(args: argparse.Namespace) -> int:
         return 1
 
     print(f"Channel set to {args.channel} — running nixos-rebuild {args.operation}", flush=True)
-    rc, _err = backend.run_upgrade(args.channel, args.operation)
+    rc = backend.run_upgrade(args.operation)
     if rc == 0:
         print("Done.", flush=True)
     else:
@@ -83,7 +83,7 @@ def _do_rebuild() -> int:
     """Run nixos-rebuild using the current channel/operation from status."""
     status = backend.read_status()
     print(f"Running nixos-rebuild {status.operation}…", flush=True)
-    rc, _ = backend.run_upgrade(status.channel, status.operation)
+    rc = backend.run_upgrade(status.operation)
     if rc != 0:
         print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
     return rc
@@ -159,7 +159,7 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
             print(f"Error setting channel: {exc}", file=sys.stderr)
             return 1
         print(f"Running nixos-rebuild {args.operation}\u2026", flush=True)
-        rc, _ = backend.run_upgrade(args.channel, args.operation)
+        rc = backend.run_upgrade(args.operation)
         if rc != 0:
             print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
         return rc

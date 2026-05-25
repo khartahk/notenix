@@ -62,16 +62,15 @@ KEY_FLATPAK_PACKAGES: str = _TABS_BY_ID["apps"]["nix_key"]
 KEY_GNOME_EXTENSIONS: str = _TABS_BY_ID["extensions"]["nix_key"]
 
 # Machine identity fields — loaded from default.yaml machine.fields
-_MACHINE_FIELDS: list[dict] = _CATALOG["machine"]["fields"]
-MACHINE_FIELDS: list[dict] = _MACHINE_FIELDS  # public alias
+MACHINE_FIELDS: list[dict] = _CATALOG["machine"]["fields"]
 MACHINE_GROUPS: list[dict] = _CATALOG["machine"]["groups"]
 
 # Generate KEY_HOSTNAME, KEY_USERNAME, … from YAML
-for _mf in _MACHINE_FIELDS:
+for _mf in MACHINE_FIELDS:
     globals()[f"KEY_{_mf['id'].upper()}"] = _mf["nix_key"]
 
 # Convenience: {nix_key: cli_flag} mapping used by privileged.py / cli.py
-MACHINE_KEY_FLAGS: dict[str, str] = {f["nix_key"]: f["cli_flag"] for f in _MACHINE_FIELDS}
+MACHINE_KEY_FLAGS: dict[str, str] = {f["nix_key"]: f["cli_flag"] for f in MACHINE_FIELDS}
 
 
 def get_tab_catalog() -> list[dict]:

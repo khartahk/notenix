@@ -21,7 +21,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from kanal.constants import FLAKE_REF, NIX_BIN
+import kanal.constants as _const
 
 # ---------------------------------------------------------------------------
 # Cache location
@@ -148,7 +148,7 @@ def _fetch_branch_presets(flake_url: str, fallback: list) -> list:
     """Run ``nix eval`` to get presets from *flake_url*; returns *fallback* on error."""
     try:
         result = subprocess.run(
-            [str(NIX_BIN), "eval", "--json", "--refresh",
+            [str(_const.NIX_BIN), "eval", "--json", "--refresh",
              f"{flake_url}#lib.kanal.presets"],
             capture_output=True, text=True, timeout=60,
         )
@@ -168,7 +168,7 @@ def refresh_metadata(callback=None) -> None:
     """
     try:
         current    = load_metadata()
-        flake_base = current.get("flakeBase", FLAKE_REF)
+        flake_base = current.get("flakeBase", _const.FLAKE_REF)
         fallback   = _DEFAULT_PRESETS
 
         owner_repo            = "/".join(flake_base.split(":", 1)[-1].split("/")[:2])
