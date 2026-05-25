@@ -1,0 +1,321 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-25 22:37+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/kanal/gui/window.py:69
+msgid "Update channel"
+msgstr ""
+
+#: src/kanal/gui/window.py:76
+msgid "Configuration preset"
+msgstr ""
+
+#: src/kanal/gui/window.py:77
+msgid "Feature set enabled by default on this machine"
+msgstr ""
+
+#: src/kanal/gui/window.py:86
+msgid "Automatic upgrade activation"
+msgstr ""
+
+#: src/kanal/gui/window.py:87 src/kanal/gui/window.py:436
+msgid "Applies to manual Save and the automatic upgrade service"
+msgstr ""
+
+#: src/kanal/gui/window.py:90
+msgid "After reboot"
+msgstr ""
+
+#: src/kanal/gui/window.py:91
+msgid "Immediately"
+msgstr ""
+
+#: src/kanal/gui/window.py:106
+msgid "Channel"
+msgstr ""
+
+#: src/kanal/gui/window.py:178
+msgid "Machine"
+msgstr ""
+
+#: src/kanal/gui/window.py:227 src/kanal/gui/window.py:335
+msgid "Update"
+msgstr ""
+
+#: src/kanal/gui/window.py:230 src/kanal/gui/window.py:337
+msgid "Save all changes and rebuild"
+msgstr ""
+
+#: src/kanal/gui/window.py:234 src/kanal/gui/window.py:578
+msgid "Save"
+msgstr ""
+
+#: src/kanal/gui/window.py:236
+msgid "Write all changes to config files (no rebuild)"
+msgstr ""
+
+#: src/kanal/gui/window.py:283 src/kanal/gui/window.py:485
+#: src/kanal/gui/window.py:504
+msgid "Show more"
+msgstr ""
+
+#: src/kanal/gui/window.py:335
+msgid "Apply"
+msgstr ""
+
+#: src/kanal/gui/window.py:337
+msgid "Rebuild with current saved config"
+msgstr ""
+
+#: src/kanal/gui/window.py:347
+msgid "Checking for updates…"
+msgstr ""
+
+#: src/kanal/gui/window.py:379
+msgid "Channel list updated"
+msgstr ""
+
+#: src/kanal/gui/window.py:384
+msgid "Stable"
+msgstr ""
+
+#: src/kanal/gui/window.py:384
+msgid "Testing"
+msgstr ""
+
+#: src/kanal/gui/window.py:395
+msgid "Reload available channels"
+msgstr ""
+
+#: src/kanal/gui/window.py:431
+msgid ""
+"Changing desktop environment requires a reboot — 'Immediately' is disabled"
+msgstr ""
+
+#: src/kanal/gui/window.py:485
+msgid "Show less"
+msgstr ""
+
+#: src/kanal/gui/window.py:532 src/kanal/gui/window.py:535
+msgid "Save failed"
+msgstr ""
+
+#: src/kanal/gui/window.py:558
+msgid "Applying…"
+msgstr ""
+
+#: src/kanal/gui/window.py:558
+msgid "Saving…"
+msgstr ""
+
+#: src/kanal/gui/window.py:559
+msgid "All changes saved and applied"
+msgstr ""
+
+#: src/kanal/gui/window.py:559
+msgid "All changes saved"
+msgstr ""
+
+#: src/kanal/gui/window.py:596
+msgid "Error"
+msgstr ""
+
+#: src/kanal/gui/window.py:597
+msgid "OK"
+msgstr ""
+
+# Strings extracted from default.yaml
+msgid "Identity"
+msgstr ""
+
+msgid "Locale"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Hostname"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "Full name"
+msgstr ""
+
+msgid "Timezone"
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Keyboard layout"
+msgstr ""
+
+msgid "State version"
+msgstr ""
+
+msgid "Set at install time - do not change"
+msgstr ""
+
+msgid "Features"
+msgstr ""
+
+msgid "These are applied on top of the selected preset"
+msgstr ""
+
+msgid "SSH server"
+msgstr ""
+
+msgid "OpenSSH -- password auth, root login disabled"
+msgstr ""
+
+msgid "Kiosk mode"
+msgstr ""
+
+msgid "Auto-login, no screen lock"
+msgstr ""
+
+msgid "RustDesk"
+msgstr ""
+
+msgid "Remote desktop -- allows controlling this machine remotely"
+msgstr ""
+
+msgid "NVIDIA drivers"
+msgstr ""
+
+msgid "Proprietary NVIDIA graphics drivers"
+msgstr ""
+
+msgid "Canon printer"
+msgstr ""
+
+msgid "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
+msgstr ""
+
+msgid "ZFS support"
+msgstr ""
+
+msgid "Enable ZFS kernel module for mounting ZFS pools"
+msgstr ""
+
+msgid "Tailscale"
+msgstr ""
+
+msgid "Tailscale VPN (adds status indicator to GNOME top bar)"
+msgstr ""
+
+msgid "Logitech Wireless"
+msgstr ""
+
+msgid "Solaar device manager + udev rules for Unifying/Bolt receivers"
+msgstr ""
+
+msgid "Extensions"
+msgstr ""
+
+msgid "Enabled on next rebuild (only applies to GNOME desktop preset)"
+msgstr ""
+
+msgid "AppIndicator"
+msgstr ""
+
+msgid "System tray icon support"
+msgstr ""
+
+msgid "Dash to Dock"
+msgstr ""
+
+msgid "Customisable dock panel"
+msgstr ""
+
+msgid "GSConnect"
+msgstr ""
+
+msgid "KDE Connect integration -- pair with Android"
+msgstr ""
+
+msgid "Desktop Icons NG"
+msgstr ""
+
+msgid "Show files and folders on the desktop"
+msgstr ""
+
+msgid "Tailscale Status"
+msgstr ""
+
+msgid "Tailscale VPN status indicator in the top bar"
+msgstr ""
+
+msgid "Apps"
+msgstr ""
+
+msgid "Apps installed from Flathub on next rebuild"
+msgstr ""
+
+msgid "Chromium"
+msgstr ""
+
+msgid "Web browser"
+msgstr ""
+
+msgid "Signal"
+msgstr ""
+
+msgid "Encrypted messaging"
+msgstr ""
+
+msgid "Nextcloud"
+msgstr ""
+
+msgid "Sync files and folders with Nextcloud"
+msgstr ""
+
+msgid "LibreOffice"
+msgstr ""
+
+msgid "Full office suite -- Writer, Calc, Impress"
+msgstr ""
+
+msgid "VSCodium"
+msgstr ""
+
+msgid "Code editor"
+msgstr ""
+
+msgid "OBS Studio"
+msgstr ""
+
+msgid "Screen recording and streaming"
+msgstr ""
+
+msgid "VLC"
+msgstr ""
+
+msgid "Media player"
+msgstr ""
+
+msgid "Flatseal"
+msgstr ""
+
+msgid "Manage Flatpak permissions"
+msgstr ""
+
+msgid "Remote desktop"
+msgstr ""

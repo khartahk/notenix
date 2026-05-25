@@ -32,6 +32,7 @@
             python3Packages.setuptools
             wrapGAppsHook4
             gobject-introspection
+            gettext
           ];
           buildInputs = with pkgs; [ gtk4 libadwaita glibc ];
           dependencies = with pkgs.python3Packages; [ pygobject3 pyyaml ];
@@ -40,11 +41,18 @@
               $out/share/applications/si.n1x05.notenix.kanal.desktop
             install -Dm644 ${./assets/update-symbolic.svg} \
               $out/share/icons/hicolor/scalable/actions/update-symbolic.svg
+            for po in po/*.po; do
+              lang=$(basename "$po" .po)
+              mkdir -p $out/share/locale/$lang/LC_MESSAGES
+              msgfmt "$po" -o $out/share/locale/$lang/LC_MESSAGES/kanal.mo
+            done
             wrapProgram $out/bin/kanal \
               --set KANALCTL_BIN $out/bin/kanalctl \
               --set KANAL_FLAKE_REF "${self.lib.kanal.flakeBase}" \
               --set KANAL_LOCALE_SUPPORTED "${pkgs.glibc}/share/i18n/SUPPORTED" \
-              --set KANAL_XKB_EVDEV_XML "${pkgs.xorg.xkeyboardconfig}/share/X11/xkb/rules/evdev.xml"
+              --set KANAL_XKB_EVDEV_XML "${pkgs.xorg.xkeyboardconfig}/share/X11/xkb/rules/evdev.xml" \
+              --set TEXTDOMAINDIR $out/share/locale \
+              --set LOCALE_ARCHIVE "${pkgs.glibcLocalesUtf8}/lib/locale/locale-archive"
           '';
         };
 

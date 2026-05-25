@@ -13,6 +13,7 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
+from kanal import _
 from kanal import backend
 
 
@@ -65,15 +66,15 @@ class ChannelWindow(Adw.Window):
         channel_page.add(main_group)
 
         self._channel_row = Adw.ComboRow()
-        self._channel_row.set_title("Update channel")
+        self._channel_row.set_title(_("Update channel"))
         self._channel_row.set_model(Gtk.StringList.new(channel_labels))
         selected_ch = self._channel_ids.index(status.channel) if status.channel in self._channel_ids else 0
         self._channel_row.set_selected(selected_ch)
         main_group.add(self._channel_row)
 
         self._preset_row = Adw.ComboRow()
-        self._preset_row.set_title("Configuration preset")
-        self._preset_row.set_subtitle("Feature set enabled by default on this machine")
+        self._preset_row.set_title(_("Configuration preset"))
+        self._preset_row.set_subtitle(_("Feature set enabled by default on this machine"))
         main_group.add(self._preset_row)
 
         self._update_preset_model(self._channel_ids[selected_ch], current_preset=status.preset)
@@ -82,12 +83,12 @@ class ChannelWindow(Adw.Window):
         self._preset_row.connect("notify::selected", self._on_preset_changed)
 
         op_row = Adw.ActionRow()
-        op_row.set_title("Automatic upgrade activation")
-        op_row.set_subtitle("Applies to manual Save and the automatic upgrade service")
+        op_row.set_title(_("Automatic upgrade activation"))
+        op_row.set_subtitle(_("Applies to manual Save and the automatic upgrade service"))
         self._op_row = op_row
 
-        self._op_reboot_btn = Gtk.CheckButton(label="After reboot")
-        self._op_now_btn    = Gtk.CheckButton(label="Immediately")
+        self._op_reboot_btn = Gtk.CheckButton(label=_("After reboot"))
+        self._op_now_btn    = Gtk.CheckButton(label=_("Immediately"))
         self._op_now_btn.set_group(self._op_reboot_btn)
 
         if status.operation == "switch":
@@ -102,7 +103,7 @@ class ChannelWindow(Adw.Window):
         op_row.add_suffix(radio_box)
         main_group.add(op_row)
 
-        self._stack.add_titled(channel_page, "channel", "Channel")
+        self._stack.add_titled(channel_page, "channel", _("Channel"))
 
         # ══ Machine page ═════════════════════════════════════════════════════════════
         machine_page = Adw.PreferencesPage()
@@ -111,7 +112,7 @@ class ChannelWindow(Adw.Window):
         _mgroups: dict[str, Adw.PreferencesGroup] = {}
         for g in backend.MACHINE_GROUPS:
             grp = Adw.PreferencesGroup()
-            grp.set_title(g["title"])
+            grp.set_title(_(g["title"]))
             machine_page.add(grp)
             _mgroups[g["id"]] = grp
 
@@ -125,7 +126,7 @@ class ChannelWindow(Adw.Window):
 
             if wt == "entry":
                 row = Adw.EntryRow()
-                row.set_title(mf["label"])
+                row.set_title(_(mf["label"]))
                 row.set_text(cur)
                 grp.add(row)
                 self._machine_widgets[mf["id"]] = row
@@ -135,7 +136,7 @@ class ChannelWindow(Adw.Window):
                 self._locale_ids = [p[0] for p in locale_pairs]
                 _cur_locale      = cur
                 row = Adw.ComboRow()
-                row.set_title(mf["label"])
+                row.set_title(_(mf["label"]))
                 row.set_model(Gtk.StringList.new([p[1] for p in locale_pairs]))
                 row.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
                 row.set_enable_search(True)
@@ -149,7 +150,7 @@ class ChannelWindow(Adw.Window):
                 kbd_pairs        = backend.list_kbd_layouts()
                 self._kbd_codes  = [p[0] for p in kbd_pairs]
                 row = Adw.ComboRow()
-                row.set_title(mf["label"])
+                row.set_title(_(mf["label"]))
                 row.set_model(Gtk.StringList.new([p[1] for p in kbd_pairs]))
                 row.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
                 row.set_enable_search(True)
@@ -162,9 +163,9 @@ class ChannelWindow(Adw.Window):
 
             elif wt == "readonly":
                 row = Adw.ActionRow()
-                row.set_title(mf["label"])
+                row.set_title(_(mf["label"]))
                 if mf.get("subtitle"):
-                    row.set_subtitle(mf["subtitle"])
+                    row.set_subtitle(_(mf["subtitle"]))
                 lbl = Gtk.Label(label=cur)
                 lbl.add_css_class("dim-label")
                 lbl.set_valign(Gtk.Align.CENTER)
@@ -174,7 +175,7 @@ class ChannelWindow(Adw.Window):
         if not self._kbd_user_set:
             self._sync_kbd_from_locale(_cur_locale)
 
-        self._stack.add_titled(machine_page, "machine", "Machine")
+        self._stack.add_titled(machine_page, "machine", _("Machine"))
 
         # ══ Dynamic catalog tabs (features / extensions / apps) ═══════════
         # All tabs defined in default.yaml are rendered generically here.
@@ -189,8 +190,8 @@ class ChannelWindow(Adw.Window):
             tab_id = tab["id"]
             page   = Adw.PreferencesPage()
             group  = Adw.PreferencesGroup()
-            group.set_title(tab["title"])
-            group.set_description(tab["description"])
+            group.set_title(_(tab["title"]))
+            group.set_description(_(tab["description"]))
             page.add(group)
 
             rows: dict[str, Adw.SwitchRow] = {}
@@ -213,26 +214,26 @@ class ChannelWindow(Adw.Window):
                     active_ids = apps_state
                 for item in tab["items"]:
                     row = Adw.SwitchRow()
-                    row.set_title(item["title"])
-                    row.set_subtitle(item["subtitle"])
+                    row.set_title(_(item["title"]))
+                    row.set_subtitle(_(item["subtitle"]))
                     row.set_active(item["id"] in active_ids)
                     group.add(row)
                     rows[item["id"]] = row
 
             self._tab_rows[tab_id] = rows
-            self._stack.add_titled(page, tab_id, tab["title"])
+            self._stack.add_titled(page, tab_id, _(tab["title"]))
 
         # ── Apply (header right) + Save (action bar) ──────────────────────
-        self._apply_btn = Gtk.Button(label="Update")
+        self._apply_btn = Gtk.Button(label=_("Update"))
         self._apply_btn.add_css_class("suggested-action")
         self._apply_btn.add_css_class("pill")
-        self._apply_btn.set_tooltip_text("Save all changes and rebuild")
+        self._apply_btn.set_tooltip_text(_("Save all changes and rebuild"))
         self._apply_btn.connect("clicked", self._on_apply_clicked)
         header.pack_end(self._apply_btn)
 
-        self._save_btn = Gtk.Button(label="Save")
+        self._save_btn = Gtk.Button(label=_("Save"))
         self._save_btn.add_css_class("pill")
-        self._save_btn.set_tooltip_text("Write all changes to config files (no rebuild)")
+        self._save_btn.set_tooltip_text(_("Write all changes to config files (no rebuild)"))
         self._save_btn.set_sensitive(False)
         self._save_btn.connect("clicked", self._on_save_all_clicked)
 
@@ -279,7 +280,7 @@ class ChannelWindow(Adw.Window):
         self._log_revealer.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP)
         self._log_revealer.set_reveal_child(False)
 
-        self._show_more_btn = Gtk.Button(label="Show more")
+        self._show_more_btn = Gtk.Button(label=_("Show more"))
         self._show_more_btn.add_css_class("flat")
         self._show_more_btn.set_visible(False)
         self._show_more_btn.connect("clicked", self._on_show_more_clicked)
@@ -331,9 +332,9 @@ class ChannelWindow(Adw.Window):
         """Save enabled only when dirty. Apply always enabled; label Apply/Update."""
         changed = self._collect_all_payload() != self._initial_payload
         self._save_btn.set_sensitive(changed)
-        self._apply_btn.set_label("Apply" if changed else "Update")
+        self._apply_btn.set_label(_("Apply") if changed else _("Update"))
         self._apply_btn.set_tooltip_text(
-            "Save all changes and rebuild" if changed else "Rebuild with current saved config"
+            _("Save all changes and rebuild") if changed else _("Rebuild with current saved config")
         )
 
     def _toast(self, message: str, timeout: int = 4) -> None:
@@ -343,7 +344,7 @@ class ChannelWindow(Adw.Window):
 
     def _start_refresh(self) -> None:
         self._reload_btn.set_sensitive(False)
-        self._reload_btn.set_tooltip_text("Checking for updates…")
+        self._reload_btn.set_tooltip_text(_("Checking for updates…"))
         spinner = Gtk.Spinner()
         spinner.start()
         self._reload_btn.set_child(spinner)
@@ -375,12 +376,12 @@ class ChannelWindow(Adw.Window):
         self._channel_row.set_selected(new_idx)
         self._update_preset_model(self._channel_ids[new_idx], current_preset=cur_preset)
 
-        self._toast("Channel list updated")
+        self._toast(_("Channel list updated"))
         return GLib.SOURCE_REMOVE
 
     @staticmethod
     def _channel_friendly(branch: str, is_default: bool = False) -> str:
-        label = {"main": "Stable", "unstable": "Testing"}.get(branch, branch.capitalize())
+        label = {"main": _("Stable"), "unstable": _("Testing")}.get(branch, branch.capitalize())
         return f"{label} ★" if is_default else label
 
     def _update_cooldown_label(self) -> None:
@@ -391,7 +392,7 @@ class ChannelWindow(Adw.Window):
         self._reload_cooldown -= 1
         if self._reload_cooldown <= 0:
             self._reload_btn.set_sensitive(True)
-            self._reload_btn.set_tooltip_text("Reload available channels")
+            self._reload_btn.set_tooltip_text(_("Reload available channels"))
             self._cooldown_label.set_visible(False)
             return GLib.SOURCE_REMOVE
         self._update_cooldown_label()
@@ -400,7 +401,7 @@ class ChannelWindow(Adw.Window):
     def _update_preset_model(self, channel_id: str, current_preset: str | None = None) -> None:
         presets = self._channel_meta.get(channel_id, {}).get("presets", [])
         self._preset_ids  = [p["id"] for p in presets]
-        preset_labels     = [f"{p['label']} ({p['subtitle']})" for p in presets]
+        preset_labels     = [f"{_(p['label'])} ({_(p['subtitle'])})" for p in presets]
         self._preset_row.set_model(Gtk.StringList.new(preset_labels))
         if current_preset and current_preset in self._preset_ids:
             self._preset_row.set_selected(self._preset_ids.index(current_preset))
@@ -427,12 +428,12 @@ class ChannelWindow(Adw.Window):
             self._op_reboot_btn.set_active(True)
             self._op_now_btn.set_sensitive(False)
             self._op_row.set_subtitle(
-                "Changing desktop environment requires a reboot — "
-                "'Immediately' is disabled"
+                _("Changing desktop environment requires a reboot — "
+                  "'Immediately' is disabled")
             )
         else:
             self._op_now_btn.set_sensitive(True)
-            self._op_row.set_subtitle("Applies to manual Save and the automatic upgrade service")
+            self._op_row.set_subtitle(_("Applies to manual Save and the automatic upgrade service"))
 
     def _channel_selection(self) -> tuple[str, str, str, str]:
         ch_idx    = self._channel_row.get_selected()
@@ -481,7 +482,7 @@ class ChannelWindow(Adw.Window):
     def _on_show_more_clicked(self, _btn) -> None:
         revealed = self._log_revealer.get_reveal_child()
         self._log_revealer.set_reveal_child(not revealed)
-        self._show_more_btn.set_label("Show less" if not revealed else "Show more")
+        self._show_more_btn.set_label(_("Show less") if not revealed else _("Show more"))
 
     def _append_log(self, text: str) -> None:
         end = self._log_buf.get_end_iter()
@@ -500,7 +501,7 @@ class ChannelWindow(Adw.Window):
         GLib.idle_add(self._log_buf.set_text, "")
         GLib.idle_add(self._show_more_btn.set_visible, True)
         GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
+        GLib.idle_add(self._show_more_btn.set_label, _("Show more"))
 
     def _run_stream_worker(
         self,
@@ -528,10 +529,10 @@ class ChannelWindow(Adw.Window):
             if rc == 0:
                 GLib.idle_add(done_cb, msg, None)
             else:
-                GLib.idle_add(done_cb, "Save failed", f"{cmd_name} exited {rc}")
+                GLib.idle_add(done_cb, _("Save failed"), f"{cmd_name} exited {rc}")
         except Exception as exc:  # noqa: BLE001
             import traceback
-            GLib.idle_add(done_cb, "Save failed", str(exc))
+            GLib.idle_add(done_cb, _("Save failed"), str(exc))
             print(traceback.format_exc(), file=sys.stderr, flush=True)
 
     def _collect_all_payload(self) -> dict:
@@ -554,8 +555,8 @@ class ChannelWindow(Adw.Window):
 
     def _dispatch_save(self, btn, label: str, rebuild: bool) -> None:
         payload    = self._collect_all_payload()
-        busy_label = "Applying\u2026" if rebuild else "Saving\u2026"
-        success    = "All changes saved and applied" if rebuild else "All changes saved"
+        busy_label = _("Applying\u2026") if rebuild else _("Saving\u2026")
+        success    = _("All changes saved and applied") if rebuild else _("All changes saved")
         dry_msg    = (
             f"[Dry run] Would save all & apply: {payload['channel']}, {payload['operation']}, {payload['preset']}"
             if rebuild else "[Dry run] Would save all settings"
@@ -574,7 +575,7 @@ class ChannelWindow(Adw.Window):
         self._dispatch_save(self._apply_btn, self._apply_btn.get_label(), rebuild=True)
 
     def _on_save_all_clicked(self, _btn):
-        self._dispatch_save(self._save_btn, "Save", rebuild=False)
+        self._dispatch_save(self._save_btn, _("Save"), rebuild=False)
 
     # ── Result callbacks ──────────────────────────────────────────────────
 
@@ -592,8 +593,8 @@ class ChannelWindow(Adw.Window):
     def _show_result(self, message: str, error: str | None = None):
         if error:
             print(f"[kanal] error: {error}", file=sys.stderr, flush=True)
-            dialog = Adw.AlertDialog.new("Error", error)
-            dialog.add_response("ok", "OK")
+            dialog = Adw.AlertDialog.new(_("Error"), error)
+            dialog.add_response("ok", _("OK"))
             dialog.present(self)
         else:
             self._toast(message)

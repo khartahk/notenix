@@ -1,0 +1,322 @@
+# Slovenian translations for n package.
+# Copyright (C) 2026 THE n'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the n package.
+# Automatically generated, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: n 1x05\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-25 22:37+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: sl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || "
+"n%100==4 ? 2 : 3);\n"
+
+#: src/kanal/gui/window.py:69
+msgid "Update channel"
+msgstr "Kanal za posodobitve"
+
+#: src/kanal/gui/window.py:76
+msgid "Configuration preset"
+msgstr "Prednastavitev"
+
+#: src/kanal/gui/window.py:77
+msgid "Feature set enabled by default on this machine"
+msgstr "Nabor funkcij, privzeto vklopljen na tej napravi"
+
+#: src/kanal/gui/window.py:86
+msgid "Automatic upgrade activation"
+msgstr "Samodejno nadgrajevanje"
+
+#: src/kanal/gui/window.py:87 src/kanal/gui/window.py:436
+msgid "Applies to manual Save and the automatic upgrade service"
+msgstr "Velja za ročno shranjevanje in storitev samodejnega nadgrajevanja"
+
+#: src/kanal/gui/window.py:90
+msgid "After reboot"
+msgstr "Po ponovnem zagonu"
+
+#: src/kanal/gui/window.py:91
+msgid "Immediately"
+msgstr "Takoj"
+
+#: src/kanal/gui/window.py:106
+msgid "Channel"
+msgstr "Kanal"
+
+#: src/kanal/gui/window.py:178
+msgid "Machine"
+msgstr "Naprava"
+
+#: src/kanal/gui/window.py:227 src/kanal/gui/window.py:335
+msgid "Update"
+msgstr "Nadgradi"
+
+#: src/kanal/gui/window.py:230 src/kanal/gui/window.py:337
+msgid "Save all changes and rebuild"
+msgstr "Shrani vse in obnovi"
+
+#: src/kanal/gui/window.py:234 src/kanal/gui/window.py:578
+msgid "Save"
+msgstr "Shrani"
+
+#: src/kanal/gui/window.py:236
+msgid "Write all changes to config files (no rebuild)"
+msgstr "Zapiši spremembe v datoteke (brez obnove)"
+
+#: src/kanal/gui/window.py:283 src/kanal/gui/window.py:485
+#: src/kanal/gui/window.py:504
+msgid "Show more"
+msgstr "Pokaži več"
+
+#: src/kanal/gui/window.py:335
+msgid "Apply"
+msgstr "Uveljavi"
+
+#: src/kanal/gui/window.py:337
+msgid "Rebuild with current saved config"
+msgstr "Obnovi s shranjeno konfiguracijo"
+
+#: src/kanal/gui/window.py:347
+msgid "Checking for updates..."
+msgstr "Preverjam posodobitve..."
+
+#: src/kanal/gui/window.py:379
+msgid "Channel list updated"
+msgstr "Seznam kanalov posodobljen"
+
+#: src/kanal/gui/window.py:384
+msgid "Stable"
+msgstr "Stabilni"
+
+#: src/kanal/gui/window.py:384
+msgid "Testing"
+msgstr "Testni"
+
+#: src/kanal/gui/window.py:395
+msgid "Reload available channels"
+msgstr "Osveži seznam kanalov"
+
+#: src/kanal/gui/window.py:431
+msgid ""
+"Changing desktop environment requires a reboot - 'Immediately' is disabled"
+msgstr "Sprememba namiznega okolja zahteva ponovni zagon - 'Takoj' je onemogočeno"
+
+#: src/kanal/gui/window.py:485
+msgid "Show less"
+msgstr "Pokaži manj"
+
+#: src/kanal/gui/window.py:532 src/kanal/gui/window.py:535
+msgid "Save failed"
+msgstr "Shranjevanje ni uspelo"
+
+#: src/kanal/gui/window.py:558
+msgid "Applying..."
+msgstr "Uveljavljam..."
+
+#: src/kanal/gui/window.py:558
+msgid "Saving..."
+msgstr "Shranjujem..."
+
+#: src/kanal/gui/window.py:559
+msgid "All changes saved and applied"
+msgstr "Vse spremembe shranjene in uveljavljene"
+
+#: src/kanal/gui/window.py:559
+msgid "All changes saved"
+msgstr "Vse spremembe shranjene"
+
+#: src/kanal/gui/window.py:596
+msgid "Error"
+msgstr "Napaka"
+
+#: src/kanal/gui/window.py:597
+msgid "OK"
+msgstr "V redu"
+
+# Strings extracted from default.yaml
+msgid "Identity"
+msgstr "Identiteta"
+
+msgid "Locale"
+msgstr "Področne nastavitve"
+
+msgid "System"
+msgstr "Sistem"
+
+msgid "Hostname"
+msgstr "Ime naprave"
+
+msgid "Username"
+msgstr "Uporabniško ime"
+
+msgid "Full name"
+msgstr "Polno ime"
+
+msgid "Timezone"
+msgstr "Časovni pas"
+
+msgid "Language"
+msgstr "Jezik"
+
+msgid "Keyboard layout"
+msgstr "Razporeditev tipkovnice"
+
+msgid "State version"
+msgstr "Različica stanja"
+
+msgid "Set at install time - do not change"
+msgstr "Nastavljeno ob namestitvi - ne spreminjajte"
+
+msgid "Features"
+msgstr "Funkcije"
+
+msgid "These are applied on top of the selected preset"
+msgstr "Dodane na vrh izbrane prednastavitve"
+
+msgid "SSH server"
+msgstr "Strežnik SSH"
+
+msgid "OpenSSH -- password auth, root login disabled"
+msgstr "OpenSSH - geslo, prijava root onemogočena"
+
+msgid "Kiosk mode"
+msgstr "Način kiosk"
+
+msgid "Auto-login, no screen lock"
+msgstr "Samodejna prijava, brez zaklepanja zaslona"
+
+msgid "RustDesk"
+msgstr "RustDesk"
+
+msgid "Remote desktop -- allows controlling this machine remotely"
+msgstr "Oddaljeno namizje - daljinsko upravljanje naprave"
+
+msgid "NVIDIA drivers"
+msgstr "Gonilniki NVIDIA"
+
+msgid "Proprietary NVIDIA graphics drivers"
+msgstr "Lastniški grafični gonilniki NVIDIA"
+
+msgid "Canon printer"
+msgstr "Tiskalnik Canon"
+
+msgid "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
+msgstr "Gonilniki UFR II za Canon LBP/MF (npr. LBP633CDW)"
+
+msgid "ZFS support"
+msgstr "Podpora ZFS"
+
+msgid "Enable ZFS kernel module for mounting ZFS pools"
+msgstr "Vklopi jedrni modul ZFS za priklop ZFS zbirk"
+
+msgid "Tailscale"
+msgstr "Tailscale"
+
+msgid "Tailscale VPN (adds status indicator to GNOME top bar)"
+msgstr "Tailscale VPN (doda kazalnik stanja v zgornjo vrstico GNOME)"
+
+msgid "Logitech Wireless"
+msgstr "Logitech brezžično"
+
+msgid "Solaar device manager + udev rules for Unifying/Bolt receivers"
+msgstr "Solaar + pravila udev za sprejemnike Unifying/Bolt"
+
+msgid "Extensions"
+msgstr "Razširitve"
+
+msgid "Enabled on next rebuild (only applies to GNOME desktop preset)"
+msgstr "Vklopljeno ob naslednji obnovi (le za prednastavitev GNOME)"
+
+msgid "AppIndicator"
+msgstr "AppIndicator"
+
+msgid "System tray icon support"
+msgstr "Podpora ikon v sistemski vrstici"
+
+msgid "Dash to Dock"
+msgstr "Dash to Dock"
+
+msgid "Customisable dock panel"
+msgstr "Prilagodljiva vrstnica"
+
+msgid "GSConnect"
+msgstr "GSConnect"
+
+msgid "KDE Connect integration -- pair with Android"
+msgstr "Integracija KDE Connect - poveži z Androidom"
+
+msgid "Desktop Icons NG"
+msgstr "Desktop Icons NG"
+
+msgid "Show files and folders on the desktop"
+msgstr "Prikaži datoteke in mape na namizju"
+
+msgid "Tailscale Status"
+msgstr "Stanje Tailscale"
+
+msgid "Tailscale VPN status indicator in the top bar"
+msgstr "Kazalnik stanja Tailscale VPN v zgornji vrstici"
+
+msgid "Apps"
+msgstr "Aplikacije"
+
+msgid "Apps installed from Flathub on next rebuild"
+msgstr "Aplikacije s Flathub, nameščene ob naslednji obnovi"
+
+msgid "Chromium"
+msgstr "Chromium"
+
+msgid "Web browser"
+msgstr "Spletni brskalnik"
+
+msgid "Signal"
+msgstr "Signal"
+
+msgid "Encrypted messaging"
+msgstr "Šifrirano sporočanje"
+
+msgid "Nextcloud"
+msgstr "Nextcloud"
+
+msgid "Sync files and folders with Nextcloud"
+msgstr "Sinhronizacija datotek in map z Nextcloud"
+
+msgid "LibreOffice"
+msgstr "LibreOffice"
+
+msgid "Full office suite -- Writer, Calc, Impress"
+msgstr "Pisarniška zbirka - Writer, Calc, Impress"
+
+msgid "VSCodium"
+msgstr "VSCodium"
+
+msgid "Code editor"
+msgstr "Urejevalnik kode"
+
+msgid "OBS Studio"
+msgstr "OBS Studio"
+
+msgid "Screen recording and streaming"
+msgstr "Snemanje zaslona in pretakanje"
+
+msgid "VLC"
+msgstr "VLC"
+
+msgid "Media player"
+msgstr "Predvajalnik medijev"
+
+msgid "Flatseal"
+msgstr "Flatseal"
+
+msgid "Manage Flatpak permissions"
+msgstr "Upravljanje dovoljenj Flatpak"
+
+msgid "Remote desktop"
+msgstr "Oddaljeno namizje"
