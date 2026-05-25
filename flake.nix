@@ -105,7 +105,7 @@
           name = "notenix-dev";
           packages = with pkgs; [
             # Python runtime + GTK bindings + test runner
-            (python3.withPackages (ps: with ps; [ pygobject3 pytest ]))
+            (python3.withPackages (ps: with ps; [ pygobject3 pyyaml pytest ]))
             gobject-introspection
             gtk4
             libadwaita
