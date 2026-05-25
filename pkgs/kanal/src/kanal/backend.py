@@ -15,6 +15,7 @@ import kanal.constants as _const
 from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
+    EXT_SOURCE_ITEMS,
     FEATURE_CATALOG,
     TAB_CATALOG,
     FLAKE_REPO,
@@ -54,7 +55,12 @@ from kanal.metadata import (
 from kanal.nixfiles import read_status, set_channel
 
 # Machine settings
-from kanal.machine import read_features, read_machine, save_features, save_machine, read_apps, save_apps, read_extensions, save_extensions
+from kanal.machine import (
+    read_features, read_machine, save_features, save_machine,
+    read_apps, save_apps,
+    read_extensions, save_extensions,
+    read_extension_sources, read_extension_source_hashes, save_extension_sources,
+)
 
 # Locale / keyboard helpers
 from kanal.locales import kbd_default_for_locale, list_kbd_layouts, list_locales
@@ -62,12 +68,13 @@ from kanal.locales import kbd_default_for_locale, list_kbd_layouts, list_locales
 # Privileged subprocess helpers
 from kanal.privileged import (
     pkexec_save_all_stream,
+    prefetch_hash_stream,
     run_upgrade,
 )
 
 __all__ = [
     # constants — catalog (YAML-derived)
-    "ALL_FEATURES", "DRY_RUN", "FEATURE_CATALOG", "FLAKE_REPO", "TAB_CATALOG",
+    "ALL_FEATURES", "DRY_RUN", "EXT_SOURCE_ITEMS", "FEATURE_CATALOG", "FLAKE_REPO", "TAB_CATALOG",
     *[f"KEY_FEATURE_{f['const']}" for f in FEATURE_CATALOG],
     "get_feature_catalog", "get_tab_catalog",
     "KEY_FLATPAK_PACKAGES", "KEY_GNOME_EXTENSIONS",
@@ -80,10 +87,11 @@ __all__ = [
     # nixfiles
     "read_status", "set_channel",
     # machine
-    "read_apps", "read_extensions", "read_features", "read_machine",
-    "save_apps", "save_extensions", "save_features", "save_machine",
+    "read_apps", "read_extensions", "read_extension_sources", "read_extension_source_hashes",
+    "read_features", "read_machine",
+    "save_apps", "save_extensions", "save_extension_sources", "save_features", "save_machine",
     # locales
     "kbd_default_for_locale", "list_kbd_layouts", "list_locales",
     # privileged
-    "pkexec_save_all_stream", "run_upgrade",
+    "pkexec_save_all_stream", "prefetch_hash_stream", "run_upgrade",
 ]

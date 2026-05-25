@@ -78,14 +78,33 @@ def run_upgrade(operation: str) -> int:
 # pkexec helpers — prompt for root once, then run the kanalctl subcommand
 # ---------------------------------------------------------------------------
 
-def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
-    """Invoke ``pkexec kanalctl save-all`` — one root prompt saves everything.
+def prefetch_hash_stream(fetch_url: str):
+    """Fetch the sha256 hash of a tarball using ``nix-prefetch-url --unpack``.
 
-    payload keys: features (dict[str, bool]), extensions (list[str]),
-                  apps (list[str]), machine (dict[str, str]),
-                  channel (str), operation (str), preset (str), flake_url (str).
-    With rebuild=True also sets the channel and runs nixos-rebuild.
+    No root required.  Yields log lines then ``(None, returncode)``.
+    The hash is the last non-empty, non-"path" line on stdout.
     """
+    import shutil
+    from pathlib import Path
+    prefetch = str(_const.NIX_BIN.parent / "nix-prefetch-url")
+    if not Path(prefetch).exists():
+        prefetch = shutil.which("nix-prefetch-url") or "nix-prefetch-url"
+    if _const.DRY_RUN:
+        yield f"[kanal dry-run] nix-prefetch-url --unpack {fetch_url}\n"
+        yield "0f4q8cpcb2z5ln5hccwnfy1lz16hqb5937z9abn09bawhq0sd0mj\n"
+        yield None, 0
+        return
+    proc = subprocess.Popen(
+        [prefetch, "--unpack", fetch_url],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    for line in proc.stdout:
+        yield line
+    proc.wait()
+    yield None, proc.returncode
+
+
+def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
     cmd = ["pkexec", _const.KANALCTL_BIN, "save-all"]
     for tab in _const.TAB_CATALOG:
         tab_id = tab["id"]
@@ -97,6 +116,12 @@ def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
     for key, flag in _MACHINE_FLAGS.items():
         if payload["machine"].get(key):
             cmd += [flag, payload["machine"][key]]
+    ext_sources = payload.get("ext_sources", {})
+    ext_hashes  = payload.get("ext_hashes",  {})
+    if ext_sources:
+        cmd += ["--ext-sources-json", json.dumps(ext_sources)]
+    if ext_hashes:
+        cmd += ["--ext-hashes-json", json.dumps(ext_hashes)]
     if rebuild:
         cmd += ["--rebuild", "--channel", payload["channel"],
                 "--operation", payload["operation"]]

@@ -133,7 +133,7 @@ def _make_tab_handler(tab: dict):
 
 
 def _cmd_save_all(args: argparse.Namespace) -> int:
-    """Save features, apps, extensions, and machine settings in one root call."""
+    """Save features, apps, extensions, machine settings, and extension sources in one root call."""
     tab_args = {}
     for tab in backend.TAB_CATALOG:
         if tab["type"] == "bool_options":
@@ -141,12 +141,16 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
             tab_args[tab["save_cmd"]] = json.loads(json_val) if json_val else {}
         else:
             tab_args[tab["save_cmd"]] = getattr(args, tab["id"], None) or []
-    settings = _collect_machine(args)
+    settings    = _collect_machine(args)
+    ext_sources = json.loads(args.ext_sources_json or "{}")
+    ext_hashes  = json.loads(args.ext_hashes_json  or "{}")
     try:
         for save_cmd, data in tab_args.items():
             _TAB_SAVE_FN[save_cmd](data)
         if settings:
             backend.save_machine(settings)
+        if ext_sources or ext_hashes:
+            backend.save_extension_sources(ext_sources, ext_hashes)
     except OSError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -236,6 +240,10 @@ def build_parser() -> argparse.ArgumentParser:
     sa.add_argument("--operation", choices=["boot", "switch"], default=None)
     sa.add_argument("--preset",    default=None)
     sa.add_argument("--flake-url", dest="flake_url", default=None)
+    sa.add_argument("--ext-sources-json", dest="ext_sources_json", default=None,
+                    help="JSON object mapping nix_source_key to source id")
+    sa.add_argument("--ext-hashes-json",  dest="ext_hashes_json",  default=None,
+                    help="JSON object mapping nix_hash_key to sha256 hash")
     sa.set_defaults(func=_cmd_save_all)
 
     return p

@@ -29,6 +29,15 @@ class ChannelWindow(Adw.Window):
         status  = backend.read_status()
         machine = backend.read_machine()
 
+        ext_sources_state = backend.read_extension_sources()
+        ext_hashes_state  = backend.read_extension_source_hashes()
+        # Mutable dict updated by background prefetch and included in every payload
+        self._ext_source_hashes: dict[str, str] = dict(ext_hashes_state)
+        # {ext_id: (ComboRow, [source_ids], item_dict)}
+        self._ext_source_rows: dict[str, tuple] = {}
+        # Reference to the experimental feature SwitchRow (wired after tab rendering)
+        self._experimental_row: Adw.SwitchRow | None = None
+
         # ── Header bar ────────────────────────────────────────────────────
         self._reload_btn = Gtk.Button()
         self._reload_btn.set_icon_name("update-symbolic")
@@ -185,6 +194,7 @@ class ChannelWindow(Adw.Window):
         features_state   = backend.read_features()
         extensions_state = set(backend.read_extensions())
         apps_state       = set(backend.read_apps())
+        is_experimental  = features_state.get("notenix.features.experimental", False)
 
         for tab in backend.get_tab_catalog():
             tab_id = tab["id"]
@@ -204,6 +214,9 @@ class ChannelWindow(Adw.Window):
                     row.set_active(features_state.get(item["key"], item["default"]))
                     group.add(row)
                     rows[item["key"]] = row
+                    # Keep a reference to the experimental row for gating source pickers
+                    if item["key"] == "notenix.features.experimental":
+                        self._experimental_row = row
 
             elif tab["type"] == "list_option":
                 if tab_id == "extensions":
@@ -219,6 +232,28 @@ class ChannelWindow(Adw.Window):
                     row.set_active(item["id"] in active_ids)
                     group.add(row)
                     rows[item["id"]] = row
+
+                    # Source picker — only for extension items that declare sources
+                    if tab_id == "extensions" and "sources" in item:
+                        src_ids    = [s["id"]    for s in item["sources"]]
+                        src_labels = [_(s["label"]) for s in item["sources"]]
+                        src_key    = item.get("nix_source_key")
+                        default_src = next(
+                            (s["id"] for s in item["sources"] if s.get("default")),
+                            src_ids[0],
+                        )
+                        cur_src = ext_sources_state.get(src_key) if src_key else None
+                        sel_idx = (src_ids.index(cur_src)
+                                   if cur_src and cur_src in src_ids
+                                   else src_ids.index(default_src))
+                        combo = Adw.ComboRow()
+                        combo.set_title(_("Package source"))
+                        combo.set_model(Gtk.StringList.new(src_labels))
+                        combo.set_selected(sel_idx)
+                        # Visible only when experimental is ON
+                        combo.set_visible(is_experimental)
+                        group.add(combo)
+                        self._ext_source_rows[item["id"]] = (combo, src_ids, item)
 
             self._tab_rows[tab_id] = rows
             self._stack.add_titled(page, tab_id, _(tab["title"]))
@@ -327,6 +362,12 @@ class ChannelWindow(Adw.Window):
         for rows in self._tab_rows.values():
             for row in rows.values():
                 row.connect("notify::active", cb)
+        for _ext_id, (combo, _src_ids, _item) in self._ext_source_rows.items():
+            combo.connect("notify::selected", cb)
+            combo.connect("notify::selected", self._on_ext_source_combo_changed)
+        # Wire experimental toggle → show/hide source pickers
+        if self._experimental_row:
+            self._experimental_row.connect("notify::active", self._on_experimental_toggled)
 
     def _update_buttons(self) -> None:
         """Save enabled only when dirty. Apply always enabled; label Apply/Update."""
@@ -536,7 +577,7 @@ class ChannelWindow(Adw.Window):
             print(traceback.format_exc(), file=sys.stderr, flush=True)
 
     def _collect_all_payload(self) -> dict:
-        """Gather current UI state from all tabs + machine form into a single payload dict."""
+        """Gather current UI state from all tabs + machine form + extension sources."""
         channel, op, preset, flake_url = self._channel_selection()
         payload: dict = {}
         for tab in backend.TAB_CATALOG:
@@ -545,10 +586,89 @@ class ChannelWindow(Adw.Window):
                 payload[tab["id"]] = {key: row.get_active() for key, row in rows.items()}
             else:
                 payload[tab["id"]] = [k for k, row in rows.items() if row.get_active()]
+        ext_sources: dict[str, str] = {}
+        for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
+            src_key = item.get("nix_source_key")
+            if src_key:
+                idx = combo.get_selected()
+                ext_sources[src_key] = src_ids[idx] if idx < len(src_ids) else src_ids[0]
         return {**payload, "machine": self._machine_settings(),
+                "ext_sources": ext_sources,
+                "ext_hashes":  dict(self._ext_source_hashes),
                 "channel": channel, "operation": op, "preset": preset, "flake_url": flake_url}
 
     # ── Callbacks ─────────────────────────────────────────────────────────
+
+    def _on_experimental_toggled(self, row: Adw.SwitchRow, _param) -> None:
+        """Show/hide source pickers and reset to default when experimental is disabled."""
+        is_exp = row.get_active()
+        for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
+            if is_exp:
+                combo.set_visible(True)
+            else:
+                # Reset to the YAML default source and hide the picker
+                default_src = next(
+                    (s["id"] for s in item["sources"] if s.get("default")),
+                    src_ids[0],
+                )
+                combo.set_selected(src_ids.index(default_src) if default_src in src_ids else 0)
+                combo.set_visible(False)
+
+    def _on_ext_source_combo_changed(self, combo: Adw.ComboRow, _param) -> None:
+        """When a source ComboRow changes, kick off hash prefetch if needed."""
+        for ext_id, (c, src_ids, item) in self._ext_source_rows.items():
+            if c is not combo:
+                continue
+            idx    = combo.get_selected()
+            src_id = src_ids[idx] if idx < len(src_ids) else src_ids[0]
+            src_def = next((s for s in item["sources"] if s["id"] == src_id), None)
+            hash_key = item.get("nix_hash_key")
+            if src_def and "fetch_url" in src_def and hash_key:
+                # Prefetch only if hash not already cached for this URL
+                cached = self._ext_source_hashes.get(hash_key, "")
+                if not cached:
+                    self._start_prefetch(ext_id, src_def["fetch_url"], hash_key)
+            break
+
+    def _start_prefetch(self, ext_id: str, fetch_url: str, hash_key: str) -> None:
+        self._toast(_("Fetching package hash\u2026"), timeout=15)
+        threading.Thread(
+            target=self._prefetch_worker,
+            args=(ext_id, fetch_url, hash_key),
+            daemon=True,
+        ).start()
+
+    def _prefetch_worker(self, ext_id: str, fetch_url: str, hash_key: str) -> None:
+        hash_val = ""
+        rc       = 0
+        for item in backend.prefetch_hash_stream(fetch_url):
+            if isinstance(item, tuple):
+                _, rc = item
+                break
+            if item:
+                line = item.strip()
+                # Hash is the last non-empty, non-"path is" line
+                if line and not line.startswith("path"):
+                    hash_val = line
+        GLib.idle_add(self._on_prefetch_done, ext_id, hash_key,
+                      hash_val if rc == 0 else "", rc)
+
+    def _on_prefetch_done(self, ext_id: str, hash_key: str, hash_val: str, rc: int):
+        if rc == 0 and hash_val:
+            self._ext_source_hashes[hash_key] = hash_val
+            self._update_buttons()
+            self._toast(_("Package hash fetched \u2014 save to apply"))
+        else:
+            self._toast(_("Failed to fetch package hash \u2014 reverting to default"))
+            # Revert combo to default source
+            if ext_id in self._ext_source_rows:
+                combo, src_ids, item = self._ext_source_rows[ext_id]
+                default_src = next(
+                    (s["id"] for s in item["sources"] if s.get("default")),
+                    src_ids[0],
+                )
+                combo.set_selected(src_ids.index(default_src) if default_src in src_ids else 0)
+        return GLib.SOURCE_REMOVE
 
     def _on_reload_clicked(self, _btn):
         self._start_refresh()

@@ -140,6 +140,13 @@ tabs:
         subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
         default: false
 
+      - key: notenix.features.experimental
+        id: experimental
+        const: EXPERIMENTAL
+        title: Experimental
+        subtitle: "Unlock alternative package sources — unstable or upstream (may cause instability)"
+        default: false
+
   - id: extensions
     title: Extensions
     description: "Enabled on next rebuild (only applies to GNOME desktop preset)"
@@ -166,6 +173,17 @@ tabs:
         title: Desktop Icons NG
         subtitle: "Show files and folders on the desktop"
         default: false
+        nix_source_key: notenix.desktop.gnome.dingSource
+        nix_hash_key: notenix.desktop.gnome.dingSourceHash
+        sources:
+          - id: unstable
+            label: "Unstable (nixpkgs-unstable)"
+            default: true
+          - id: stable
+            label: "Stable (nixpkgs)"
+          - id: upstream-main
+            label: "Upstream main"
+            fetch_url: "https://gitlab.com/smedius/desktop-icons-ng/-/archive/main/desktop-icons-ng-main.tar.gz"
 
       - id: tailscale-status
         title: Tailscale Status

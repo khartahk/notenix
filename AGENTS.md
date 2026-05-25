@@ -100,10 +100,65 @@ nix run .#vm-gnome    # GNOME desktop (needs QEMU display)
 
 ## Adding a feature flag
 
-Feature flags live in `modules/system/features.nix` and are exposed as `notenix.features.<name>` booleans. Kanal reads/writes them via machine.nix. Adding a new feature requires touching **7 files** in order:
+`default.yaml` is the **single source of truth** for all dynamic kanal tabs (features, extensions, apps). `constants.py`, `cli.py`, and `gui/window.py` all read it at runtime — no Python changes needed for ordinary features or extensions.
 
-### 1. `modules/system/features.nix`
-Add the option and its config block:
+### 1. `pkgs/kanal/src/kanal/default.yaml`
+
+**Bool feature** (toggle in the Features tab):
+```yaml
+# under tabs → id: features → items:
+- key: notenix.features.myFeature
+  id: myFeature
+  const: MY_FEATURE          # becomes KEY_FEATURE_MY_FEATURE constant auto-magically
+  title: My Feature
+  subtitle: "One-line description shown in the GUI"
+  default: false
+```
+
+Optional `extra` field wires a bool feature to also add/remove an entry from the GNOME extensions list:
+```yaml
+  extra:
+    type: gnome_extension
+    value: tailscale-status   # extension id in notenix.desktop.gnome.extensions
+```
+
+**List extension** (toggle in the Extensions tab):
+```yaml
+# under tabs → id: extensions → items:
+- id: my-extension-id        # matches the _extPkgs key in gnome.nix
+  title: My Extension
+  subtitle: "What it does"
+  default: false
+```
+
+**List extension with selectable package source** (source picker shown when Experimental is ON):
+```yaml
+- id: my-extension-id
+  title: My Extension
+  subtitle: "What it does"
+  default: false
+  nix_source_key: notenix.desktop.gnome.myExtSource    # NixOS option written to machine.nix
+  nix_hash_key:   notenix.desktop.gnome.myExtSourceHash # sha256 stored for upstream fetches
+  sources:
+    - id: unstable
+      label: "Unstable (nixpkgs-unstable)"
+      default: true          # this id is omitted from machine.nix (matches NixOS module default)
+    - id: stable
+      label: "Stable (nixpkgs)"
+    - id: upstream-main
+      label: "Upstream main"
+      fetch_url: "https://example.com/repo/-/archive/main/repo-main.tar.gz"
+      # fetch_url triggers an automatic nix-prefetch-url --unpack when selected in kanal
+      # result stored in nix_hash_key; used by NixOS module via builtins.fetchTarball
+```
+
+The `nix_source_key` id must match the `default` of the first source with `default: true` — that value is **not written** to machine.nix (module default takes over). All other source ids are written as `lib.mkForce "id"`.
+
+The `experimental` feature flag (also in `default.yaml`) gates source picker visibility in the UI. Source pickers are hidden and reset to default when experimental is disabled.
+
+### 2. `modules/system/features.nix`
+
+Add the NixOS option and its `config` block:
 ```nix
 myFeature = mkOption {
   type        = types.bool;
@@ -111,63 +166,38 @@ myFeature = mkOption {
   description = "One-line description.";
 };
 ```
-Then inside `config = mkMerge [`:
+Inside `config = mkMerge [`:
 ```nix
 (mkIf cfg.myFeature {
   # NixOS config here
 })
 ```
 
-### 2. `pkgs/kanal/src/kanal/constants.py`
-```python
-KEY_FEATURE_MY_FEATURE = "notenix.features.myFeature"
-# Add to ALL_FEATURES list:
-ALL_FEATURES: list[str] = [..., KEY_FEATURE_MY_FEATURE]
+For extensions only — if the extension package isn't already in `_extPkgs` in `modules/desktop/gnome.nix`, add it there too:
+```nix
+"my-extension-id" = pkgs.gnomeExtensions.myExtension;
 ```
 
-### 3. `pkgs/kanal/src/kanal/backend.py`
-Add to the `from kanal.constants import (...)` block:
-```python
-KEY_FEATURE_MY_FEATURE,
-```
-
-### 4. `pkgs/kanal/src/kanal/privileged.py`
-Import the constant, then add to the flag map dict:
-```python
-KEY_FEATURE_MY_FEATURE: "--my-feature",
-```
-
-### 5. `pkgs/kanal/src/kanal/cli.py`
-In `_cmd_set_features`:
-```python
-if args.my_feature is not None: features[backend.KEY_FEATURE_MY_FEATURE] = args.my_feature
-```
-In `build_parser()` under `set-features`:
-```python
-f.add_argument("--my-feature",    dest="my_feature", action="store_true",  default=None)
-f.add_argument("--no-my-feature", dest="my_feature", action="store_false")
-```
-
-### 6. `pkgs/kanal/src/kanal/gui/window.py`
-In the features page setup block (after the last `feat_group.add(...)`):
-```python
-self._my_feature_row = Adw.SwitchRow()
-self._my_feature_row.set_title("My Feature")
-self._my_feature_row.set_subtitle("Short description shown in GUI")
-self._my_feature_row.set_active(features.get(backend.KEY_FEATURE_MY_FEATURE, False))
-feat_group.add(self._my_feature_row)
-```
-In the `features = {...}` save dict:
-```python
-backend.KEY_FEATURE_MY_FEATURE: self._my_feature_row.get_active(),
-```
-
-### 7. Test the build
+### 3. Test the build
 ```bash
-cd /path/to/notenix
 nix build path:.#nixosConfigurations.notenix.config.system.build.toplevel
 ```
 Build must succeed before committing.
+
+---
+
+## Known extension issues
+
+### gtk4-desktop-icons-ng-ding (Desktop Icons NG)
+
+`gnomeExtensions.gtk4-desktop-icons-ng-ding` v129 (nixpkgs unstable, 2026-05) **crashes on GNOME 49.4** with:
+
+```
+Adw-DING: Gjs:ERROR: assertion failed: (gtype != G_TYPE_INVALID)
+cannot register existing type 'GDesktopAppInfoLookup'
+```
+
+The extension subprocess (`adw-ding.js`) ABORTs and respawns in an infinite crash loop. Extension settings open fine but no icons appear on the desktop. Extension is **disabled by default** in `default.yaml`. Do not enable until a fixed package version lands in nixpkgs.
 
 ---
 

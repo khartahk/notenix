@@ -9,7 +9,21 @@ let
     "appindicator"                = pkgs.gnomeExtensions.appindicator;
     "dash-to-dock"                = pkgs.gnomeExtensions.dash-to-dock;
     "gsconnect"                   = pkgs.gnomeExtensions.gsconnect;
-    "gtk4-desktop-icons-ng-ding"  = pkgs-unstable.gnomeExtensions.gtk4-desktop-icons-ng-ding;
+    "gtk4-desktop-icons-ng-ding"  =
+      let
+        base = if cfg.dingSource == "stable"
+               then pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding
+               else pkgs-unstable.gnomeExtensions.gtk4-desktop-icons-ng-ding;
+      in
+        if cfg.dingSource == "upstream-main" && cfg.dingSourceHash != "" then
+          base.overrideAttrs (_: {
+            version = "upstream-main";
+            src = builtins.fetchTarball {
+              url    = "https://gitlab.com/smedius/desktop-icons-ng/-/archive/main/desktop-icons-ng-main.tar.gz";
+              sha256 = cfg.dingSourceHash;
+            };
+          })
+        else base;
     "tailscale-status"            = pkgs.gnomeExtensions.tailscale-status;
   };
   _activeExtIds  = builtins.filter (id: builtins.hasAttr id _extPkgs) cfg.extensions;
@@ -96,6 +110,18 @@ in
       type    = lib.types.listOf lib.types.str;
       default = [ "appindicator" "dash-to-dock" "gsconnect" ];
       description = "GNOME extensions to install and enable. Valid IDs: appindicator, dash-to-dock, gsconnect, gtk4-desktop-icons-ng-ding.";
+    };
+
+    dingSource = lib.mkOption {
+      type    = lib.types.enum [ "unstable" "stable" "upstream-main" ];
+      default = "unstable";
+      description = "Package source for gtk4-desktop-icons-ng-ding. upstream-main requires dingSourceHash.";
+    };
+
+    dingSourceHash = lib.mkOption {
+      type    = lib.types.str;
+      default = "";
+      description = "sha256 hash (base32, from nix-prefetch-url --unpack) for the upstream-main source. Set by kanal.";
     };
   };
 

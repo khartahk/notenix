@@ -61,6 +61,11 @@ for _f in FEATURE_CATALOG:
 KEY_FLATPAK_PACKAGES: str = _TABS_BY_ID["apps"]["nix_key"]
 KEY_GNOME_EXTENSIONS: str = _TABS_BY_ID["extensions"]["nix_key"]
 
+# Extension items that expose selectable package sources
+EXT_SOURCE_ITEMS: list[dict] = [
+    item for item in _TABS_BY_ID["extensions"]["items"] if "sources" in item
+]
+
 # Machine identity fields — loaded from default.yaml machine.fields
 MACHINE_FIELDS: list[dict] = _CATALOG["machine"]["fields"]
 MACHINE_GROUPS: list[dict] = _CATALOG["machine"]["groups"]

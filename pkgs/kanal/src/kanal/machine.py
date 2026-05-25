@@ -203,3 +203,65 @@ def read_extensions() -> list[str]:
 def save_extensions(ext_ids: list[str]) -> None:
     """Write GNOME extensions list to machine.nix (must be called as root)."""
     _save_list_key(_const.KEY_GNOME_EXTENSIONS, ext_ids, "extensions")
+
+
+def _default_source_for_item(item: dict) -> str:
+    """Return the default source id for an EXT_SOURCE_ITEMS entry."""
+    return next(
+        (s["id"] for s in item.get("sources", []) if s.get("default")),
+        item["sources"][0]["id"] if item.get("sources") else "stable",
+    )
+
+
+def read_extension_sources() -> dict[str, str]:
+    """Return {nix_source_key: source_id} from machine.nix (no root required)."""
+    result: dict[str, str] = {}
+    if not _const.MACHINE_PATH.exists():
+        return result
+    contents = _const.MACHINE_PATH.read_text()
+    for item in _const.EXT_SOURCE_ITEMS:
+        key = item.get("nix_source_key")
+        if not key:
+            continue
+        val = _get_value(contents, key)
+        if val:
+            result[key] = val
+    return result
+
+
+def read_extension_source_hashes() -> dict[str, str]:
+    """Return {nix_hash_key: hash_str} from machine.nix (no root required)."""
+    result: dict[str, str] = {}
+    if not _const.MACHINE_PATH.exists():
+        return result
+    contents = _const.MACHINE_PATH.read_text()
+    for item in _const.EXT_SOURCE_ITEMS:
+        key = item.get("nix_hash_key")
+        if not key:
+            continue
+        val = _get_value(contents, key)
+        if val:
+            result[key] = val
+    return result
+
+
+def save_extension_sources(sources: dict[str, str], hashes: dict[str, str]) -> None:
+    """Write extension source selections and hashes to machine.nix (root required)."""
+    contents = _load_machine()
+    for item in _const.EXT_SOURCE_ITEMS:
+        src_key  = item.get("nix_source_key")
+        hash_key = item.get("nix_hash_key")
+        default_src = _default_source_for_item(item)
+        if src_key:
+            src_val = sources.get(src_key)
+            if src_val and src_val != default_src:
+                contents = _upsert_value(contents, src_key, src_val)
+            else:
+                contents = _remove_key(contents, src_key)
+        if hash_key:
+            hash_val = hashes.get(hash_key, "")
+            if hash_val:
+                contents = _upsert_value(contents, hash_key, hash_val)
+            else:
+                contents = _remove_key(contents, hash_key)
+    _write_machine(contents, "extension sources")
