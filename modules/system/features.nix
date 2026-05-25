@@ -58,6 +58,12 @@ in
       default     = false;
       description = "Enable Solaar and udev rules for Logitech Unifying/Bolt wireless devices.";
     };
+
+    experimental = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Unlock alternative package sources for extensions (unstable/upstream). May cause instability.";
+    };
   };
 
   config = mkMerge [
