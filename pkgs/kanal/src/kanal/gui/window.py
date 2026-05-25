@@ -561,6 +561,7 @@ class ChannelWindow(Adw.Window):
             if rebuild else "[Dry run] Would save all settings"
         )
         self._set_busy(True, btn, busy_label)
+        self._save_btn.set_sensitive(False)
         done_cb = lambda msg, err: self._done_action(msg, err, btn, label)  # noqa: E731
         threading.Thread(
             target=self._run_stream_worker,
