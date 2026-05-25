@@ -10,6 +10,7 @@ final ``(None, returncode)`` sentinel so the GUI can update in real time.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 
@@ -211,3 +212,30 @@ def pkexec_save_extensions_stream(ext_ids: list[str], rebuild: bool = True):
     if rebuild:
         cmd.append("--rebuild")
     yield from _pkexec_stream(cmd, f"set-extensions: {ext_ids!r}")
+
+
+def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
+    """Invoke ``pkexec kanalctl save-all`` and stream output.
+
+    payload keys: features (dict), extensions (list), apps (list),
+                  machine (dict), channel (str), operation (str),
+                  preset (str), flake_url (str).
+    """
+    cmd = [
+        "pkexec", KANALCTL_BIN, "save-all",
+        "--features-json", json.dumps(payload["features"]),
+        "--apps",        *payload["apps"],
+        "--extensions",  *payload["extensions"],
+    ]
+    for key, flag in _MACHINE_FLAGS.items():
+        if payload["machine"].get(key):
+            cmd += [flag, payload["machine"][key]]
+    if rebuild:
+        cmd += ["--rebuild", "--channel", payload["channel"],
+                "--operation", payload["operation"]]
+        if payload.get("preset"):
+            cmd += ["--preset", payload["preset"]]
+        if payload.get("flake_url"):
+            cmd += ["--flake-url", payload["flake_url"]]
+    dry = f"save-all rebuild={rebuild} ch={payload.get('channel')} features={payload['features']}"
+    yield from _pkexec_stream(cmd, dry)

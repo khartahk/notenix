@@ -237,29 +237,20 @@ class ChannelWindow(Adw.Window):
             self._tab_rows[tab_id] = rows
             self._stack.add_titled(page, tab_id, tab["title"])
 
-        # ── Save buttons (one per dynamic tab + machine) ──────────────────
+        # ── Apply (header right) + Save (action bar) ──────────────────────
+        self._apply_btn = Gtk.Button(label="Apply")
+        self._apply_btn.add_css_class("suggested-action")
+        self._apply_btn.add_css_class("pill")
+        self._apply_btn.set_tooltip_text("Save all changes and rebuild")
+        self._apply_btn.connect("clicked", self._on_apply_clicked)
+        header.pack_end(self._apply_btn)
+
         self._save_btn = Gtk.Button(label="Save")
         self._save_btn.add_css_class("pill")
-        self._save_btn.connect("clicked", self._on_save_clicked)
-
-        # Build one Save button per catalog tab, keyed by tab id
-        self._tab_save_btns: dict[str, Gtk.Button] = {}
-        for tab in backend.get_tab_catalog():
-            btn = Gtk.Button(label="Save")
-            btn.add_css_class("suggested-action")
-            btn.add_css_class("pill")
-            btn.connect("clicked", self._on_tab_save_clicked, tab["id"])
-            self._tab_save_btns[tab["id"]] = btn
-
-        self._activate_btn = Gtk.Button(label="Save")
-        self._activate_btn.add_css_class("suggested-action")
-        self._activate_btn.add_css_class("pill")
-        self._activate_btn.connect("clicked", self._on_activate_clicked)
+        self._save_btn.set_tooltip_text("Write all changes to config files (no rebuild)")
+        self._save_btn.connect("clicked", self._on_save_all_clicked)
 
         action_bar = Gtk.ActionBar()
-        action_bar.pack_end(self._activate_btn)
-        for btn in reversed(list(self._tab_save_btns.values())):
-            action_bar.pack_end(btn)
         action_bar.pack_end(self._save_btn)
 
         # ── Layout ────────────────────────────────────────────────────────
@@ -324,9 +315,6 @@ class ChannelWindow(Adw.Window):
         self._toast_overlay.set_child(toolbar_view)
         self.set_content(self._toast_overlay)
 
-        self._stack.connect("notify::visible-child", self._on_tab_changed)
-        self._on_tab_changed(self._stack, None)
-
         if backend.is_cache_stale():
             self._start_refresh()
 
@@ -336,13 +324,6 @@ class ChannelWindow(Adw.Window):
         t = Adw.Toast.new(message)
         t.set_timeout(timeout)
         self._toast_overlay.add_toast(t)
-
-    def _on_tab_changed(self, stack, _param) -> None:
-        tab = stack.get_visible_child_name()
-        self._activate_btn.set_visible(tab == "channel")
-        self._save_btn.set_visible(tab == "machine")
-        for tid, btn in self._tab_save_btns.items():
-            btn.set_visible(tab == tid)
 
     def _start_refresh(self) -> None:
         self._reload_btn.set_sensitive(False)
@@ -532,79 +513,57 @@ class ChannelWindow(Adw.Window):
             GLib.idle_add(done_cb, "Save failed", str(exc))
             print(traceback.format_exc(), file=sys.stderr, flush=True)
 
-    # Dispatch table: save_cmd → (stream_fn, success_msg, dry_msg)
-    _SAVE_STREAMS: dict[str, tuple] = {
-        "set-features":   (backend.pkexec_save_features_stream,   "Features saved and applied",    "[Dry run] Would save features"),
-        "set-extensions": (backend.pkexec_save_extensions_stream, "Extensions saved and applied",  "[Dry run] Would save extensions"),
-        "set-apps":       (backend.pkexec_save_apps_stream,        "App list saved and applied",    "[Dry run] Would save apps"),
-    }
-
-    def _tab_payload(self, tab: dict, rows: dict) -> dict | list:
-        """Collect row states into the payload expected by the stream function."""
-        if tab["type"] == "bool_options":
-            return {key: row.get_active() for key, row in rows.items()}
-        return [item_id for item_id, row in rows.items() if row.get_active()]
+    def _collect_all_payload(self) -> dict:
+        """Gather current UI state from all tabs + machine form into a single payload dict."""
+        channel, op, preset, flake_url = self._channel_selection()
+        return {
+            "features":   {key: row.get_active() for key, row in self._tab_rows.get("features",   {}).items()},
+            "extensions": [eid for eid, row in self._tab_rows.get("extensions", {}).items() if row.get_active()],
+            "apps":       [aid for aid, row in self._tab_rows.get("apps",       {}).items() if row.get_active()],
+            "machine":    self._machine_settings(),
+            "channel":    channel,
+            "operation":  op,
+            "preset":     preset,
+            "flake_url":  flake_url,
+        }
 
     # ── Callbacks ─────────────────────────────────────────────────────────
 
     def _on_reload_clicked(self, _btn):
         self._start_refresh()
 
-    def _on_activate_clicked(self, _btn):
-        channel, op, preset, flake_url = self._channel_selection()
-        self._set_busy(True, self._activate_btn, "Saving...")
-        threading.Thread(target=self._worker_activate, args=(channel, op, preset, flake_url), daemon=True).start()
-
-    def _on_save_clicked(self, _btn):
-        settings = self._machine_settings()
-        self._set_busy(True, self._save_btn, "Saving...")
-        threading.Thread(target=self._worker_save, args=(settings,), daemon=True).start()
-
-    def _on_tab_save_clicked(self, _btn, tab_id: str):
-        rows    = self._tab_rows[tab_id]
-        tab     = next(t for t in backend.get_tab_catalog() if t["id"] == tab_id)
-        btn     = self._tab_save_btns[tab_id]
-        self._set_busy(True, btn, "Saving...")
-        payload = self._tab_payload(tab, rows)
-        stream_base, success_msg, dry_msg = self._SAVE_STREAMS[tab["save_cmd"]]
-        stream_fn = lambda: stream_base(payload)  # noqa: E731
-        done_cb   = lambda msg, err: self._done_tab_save(msg, err, btn)  # noqa: E731
+    def _on_apply_clicked(self, _btn):
+        payload = self._collect_all_payload()
+        self._set_busy(True, self._apply_btn, "Applying\u2026")
+        done_cb = lambda msg, err: self._done_action(msg, err, self._apply_btn, "Apply")  # noqa: E731
         threading.Thread(
             target=self._run_stream_worker,
-            args=(stream_fn, success_msg, dry_msg, tab["save_cmd"], done_cb),
+            args=(lambda: backend.pkexec_save_all_stream(payload, rebuild=True),
+                  "All changes saved and applied",
+                  f"[Dry run] Would save all & apply: {payload['channel']}, {payload['operation']}, {payload['preset']}",
+                  "kanalctl save-all",
+                  done_cb),
             daemon=True,
         ).start()
 
-    # ── Workers ───────────────────────────────────────────────────────────
+    def _on_save_all_clicked(self, _btn):
+        payload = self._collect_all_payload()
+        self._set_busy(True, self._save_btn, "Saving\u2026")
+        done_cb = lambda msg, err: self._done_action(msg, err, self._save_btn, "Save")  # noqa: E731
+        threading.Thread(
+            target=self._run_stream_worker,
+            args=(lambda: backend.pkexec_save_all_stream(payload, rebuild=False),
+                  "All changes saved",
+                  "[Dry run] Would save all settings",
+                  "kanalctl save-all",
+                  done_cb),
+            daemon=True,
+        ).start()
 
-    def _worker_activate(self, channel: str, op: str, preset: str, flake_url: str):
-        self._run_stream_worker(
-            stream_fn   = lambda: backend.pkexec_apply_stream(channel, op, preset, flake_url=flake_url),
-            success_msg = "Changes saved and applied",
-            dry_msg     = f"[Dry run] Would apply: {channel}, {op}, {preset}",
-            cmd_name    = "kanalctl apply",
-            done_cb     = self._done_activate,
-        )
+    # ── Result callbacks ──────────────────────────────────────────────────
 
-    def _worker_save(self, settings: dict[str, str]):
-        self._run_stream_worker(
-            stream_fn   = lambda: backend.pkexec_save_machine_stream(settings),
-            success_msg = "Machine settings saved and applied",
-            dry_msg     = "[Dry run] Would save and apply machine settings",
-            cmd_name    = "kanalctl set-machine",
-            done_cb     = self._done_save,
-        )
-
-    def _done_activate(self, message: str, error: str | None = None):
-        self._set_busy(False, self._activate_btn, "Save")
-        self._show_result(message, error)
-
-    def _done_save(self, message: str, error: str | None = None):
-        self._set_busy(False, self._save_btn, "Save")
-        self._show_result(message, error)
-
-    def _done_tab_save(self, message: str, error: str | None, btn: Gtk.Button):
-        self._set_busy(False, btn, "Save")
+    def _done_action(self, message: str, error: str | None, btn: Gtk.Button, label: str = "Save"):
+        self._set_busy(False, btn, label)
         self._show_result(message, error)
 
     def _show_result(self, message: str, error: str | None = None):

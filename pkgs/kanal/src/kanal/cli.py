@@ -18,6 +18,7 @@ set-machine --hostname H --username U --userdesc D --timezone T --locale L --kbl
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 
 from kanal import backend
@@ -150,6 +151,42 @@ def _cmd_set_extensions(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_save_all(args: argparse.Namespace) -> int:
+    """Save features, apps, extensions, and machine settings in one root call."""
+    features = json.loads(args.features_json) if args.features_json else {}
+    app_ids  = args.apps       if args.apps       is not None else []
+    ext_ids  = args.extensions if args.extensions is not None else []
+    settings: dict[str, str] = {}
+    if args.hostname:             settings[backend.KEY_HOSTNAME]  = args.hostname
+    if args.username:             settings[backend.KEY_USERNAME]  = args.username
+    if args.userdesc is not None: settings[backend.KEY_USERDESC]  = args.userdesc
+    if args.timezone:             settings[backend.KEY_TIMEZONE]  = args.timezone
+    if args.locale:               settings[backend.KEY_LOCALE]    = args.locale
+    if args.kblayout:             settings[backend.KEY_KBLAYOUT]  = args.kblayout
+    try:
+        if features:  backend.save_features(features)
+        backend.save_apps(app_ids)
+        backend.save_extensions(ext_ids)
+        if settings: backend.save_machine(settings)
+    except OSError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print("All settings saved.", flush=True)
+    if args.rebuild:
+        try:
+            backend.set_channel(args.channel, args.operation, args.preset,
+                                flake_url=getattr(args, "flake_url", None))
+        except (ValueError, OSError) as exc:
+            print(f"Error setting channel: {exc}", file=sys.stderr)
+            return 1
+        print(f"Running nixos-rebuild {args.operation}\u2026", flush=True)
+        rc, _ = backend.run_upgrade(args.channel, args.operation)
+        if rc != 0:
+            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
+        return rc
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="kanalctl",
@@ -229,6 +266,25 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Extension IDs to enable (replaces current list; omit all to clear)")
     ex.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     ex.set_defaults(func=_cmd_set_extensions)
+
+    # save-all
+    sa = sub.add_parser("save-all", help="Save all settings atomically (requires root)")
+    sa.add_argument("--features-json", dest="features_json", default=None,
+                    help="JSON object mapping feature keys to booleans")
+    sa.add_argument("--apps",       nargs="*", default=None, metavar="APP_ID")
+    sa.add_argument("--extensions", nargs="*", default=None, metavar="EXT_ID")
+    sa.add_argument("--hostname",     default=None)
+    sa.add_argument("--username",     default=None)
+    sa.add_argument("--userdesc",     default=None)
+    sa.add_argument("--timezone",     default=None)
+    sa.add_argument("--locale",       default=None)
+    sa.add_argument("--kblayout",     default=None)
+    sa.add_argument("--rebuild",   action="store_true", help="Save + run nixos-rebuild")
+    sa.add_argument("--channel",   default=None)
+    sa.add_argument("--operation", choices=["boot", "switch"], default=None)
+    sa.add_argument("--preset",    default=None)
+    sa.add_argument("--flake-url", dest="flake_url", default=None)
+    sa.set_defaults(func=_cmd_save_all)
 
     return p
 

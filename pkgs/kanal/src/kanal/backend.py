@@ -67,6 +67,7 @@ from kanal.privileged import (
     pkexec_apply_stream,
     pkexec_save_apps_stream,
     pkexec_save_extensions_stream,
+    pkexec_save_all_stream,
     pkexec_save_features_stream,
     pkexec_save_machine,
     pkexec_save_machine_stream,
@@ -98,6 +99,7 @@ __all__ = [
     # privileged
     "pkexec_apply", "pkexec_apply_stream", "pkexec_save_apps_stream",
     "pkexec_save_extensions_stream",
+    "pkexec_save_all_stream",
     "pkexec_save_features_stream", "pkexec_save_machine", "pkexec_save_machine_stream",
     "pkexec_set", "run_upgrade",
 ]
