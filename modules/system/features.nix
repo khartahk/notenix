@@ -117,8 +117,11 @@ in
     })
 
     (mkIf cfg.logitechWireless {
-      hardware.logitech.wireless.enable         = true;
+      hardware.logitech.wireless.enable          = true;
       hardware.logitech.wireless.enableGraphical = true;  # installs Solaar
+      # Allow Solaar to create virtual input devices (required for remapping)
+      hardware.uinput.enable = true;
+      users.groups.uinput.members = [ config.notenix.system.install.userName ];
     })
 
     (mkIf cfg.tailscale {
