@@ -63,6 +63,7 @@ KEY_GNOME_EXTENSIONS: str = _TABS_BY_ID["extensions"]["nix_key"]
 
 # Machine identity fields — loaded from default.yaml machine.fields
 _MACHINE_FIELDS: list[dict] = _CATALOG["machine"]["fields"]
+MACHINE_FIELDS: list[dict] = _MACHINE_FIELDS  # public alias
 
 # Generate KEY_HOSTNAME, KEY_USERNAME, … from YAML
 for _mf in _MACHINE_FIELDS:

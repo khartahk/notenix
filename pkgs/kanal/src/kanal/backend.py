@@ -37,6 +37,7 @@ from kanal.constants import (
     KEY_USERDESC,
     KEY_USERNAME,
     LOCAL_FLAKE_PATH,
+    MACHINE_FIELDS,
     MACHINE_KEY_FLAGS,
     MACHINE_PATH,
     get_feature_catalog,
@@ -77,7 +78,7 @@ __all__ = [
     # constants — machine keys (YAML-derived)
     "KEY_HOSTNAME", "KEY_KBLAYOUT", "KEY_LOCALE", "KEY_OP", "KEY_PRESET",
     "KEY_STATEVERSION", "KEY_TIMEZONE", "KEY_USERDESC", "KEY_USERNAME",
-    "LOCAL_FLAKE_PATH", "MACHINE_KEY_FLAGS", "MACHINE_PATH",
+    "LOCAL_FLAKE_PATH", "MACHINE_FIELDS", "MACHINE_KEY_FLAGS", "MACHINE_PATH",
     # metadata
     "Status", "is_cache_stale", "load_metadata", "refresh_metadata",
     # nixfiles

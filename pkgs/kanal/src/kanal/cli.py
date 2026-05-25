@@ -66,13 +66,11 @@ def _cmd_apply(args: argparse.Namespace) -> int:
 
 def _cmd_set_machine(args: argparse.Namespace) -> int:
     settings = {}
-    if args.hostname:  settings[backend.KEY_HOSTNAME]     = args.hostname
-    if args.username:  settings[backend.KEY_USERNAME]     = args.username
-    if args.userdesc is not None: settings[backend.KEY_USERDESC] = args.userdesc
-    if args.timezone:  settings[backend.KEY_TIMEZONE]     = args.timezone
-    if args.locale:    settings[backend.KEY_LOCALE]       = args.locale
-    if args.kblayout:  settings[backend.KEY_KBLAYOUT]     = args.kblayout
-    if args.stateversion: settings[backend.KEY_STATEVERSION] = args.stateversion
+    for mf in backend.MACHINE_FIELDS:
+        dest = mf["cli_flag"][2:].replace("-", "_")
+        val = getattr(args, dest, None)
+        if val is not None:
+            settings[mf["nix_key"]] = val
     try:
         backend.save_machine(settings)
     except OSError as exc:
@@ -91,14 +89,11 @@ def _cmd_set_machine(args: argparse.Namespace) -> int:
 
 def _cmd_set_features(args: argparse.Namespace) -> int:
     features: dict[str, bool] = {}
-    if args.ssh is not None:           features[backend.KEY_FEATURE_SSH]           = args.ssh
-    if args.kiosk is not None:         features[backend.KEY_FEATURE_KIOSK]         = args.kiosk
-    if args.rustdesk is not None:      features[backend.KEY_FEATURE_RUSTDESK]      = args.rustdesk
-    if args.nvidia is not None:        features[backend.KEY_FEATURE_NVIDIA]        = args.nvidia
-    if args.canon_printer is not None: features[backend.KEY_FEATURE_CANON_PRINTER] = args.canon_printer
-    if args.zfs is not None:           features[backend.KEY_FEATURE_ZFS]           = args.zfs
-    if args.tailscale is not None:          features[backend.KEY_FEATURE_TAILSCALE]          = args.tailscale
-    if args.logitech_wireless is not None:  features[backend.KEY_FEATURE_LOGITECH_WIRELESS]  = args.logitech_wireless
+    for f in backend.FEATURE_CATALOG:
+        dest = f["id"].replace("-", "_")
+        val = getattr(args, dest, None)
+        if val is not None:
+            features[f["key"]] = val
     try:
         backend.save_features(features)
     except OSError as exc:
@@ -157,12 +152,11 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
     app_ids  = args.apps       if args.apps       is not None else []
     ext_ids  = args.extensions if args.extensions is not None else []
     settings: dict[str, str] = {}
-    if args.hostname:             settings[backend.KEY_HOSTNAME]  = args.hostname
-    if args.username:             settings[backend.KEY_USERNAME]  = args.username
-    if args.userdesc is not None: settings[backend.KEY_USERDESC]  = args.userdesc
-    if args.timezone:             settings[backend.KEY_TIMEZONE]  = args.timezone
-    if args.locale:               settings[backend.KEY_LOCALE]    = args.locale
-    if args.kblayout:             settings[backend.KEY_KBLAYOUT]  = args.kblayout
+    for mf in backend.MACHINE_FIELDS:
+        dest = mf["cli_flag"][2:].replace("-", "_")
+        val = getattr(args, dest, None)
+        if val is not None:
+            settings[mf["nix_key"]] = val
     try:
         if features:  backend.save_features(features)
         backend.save_apps(app_ids)
@@ -222,34 +216,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     # set-machine
     m = sub.add_parser("set-machine", help="Save machine-specific settings (requires root)")
-    m.add_argument("--hostname",     default=None)
-    m.add_argument("--username",     default=None)
-    m.add_argument("--userdesc",     default=None)
-    m.add_argument("--timezone",     default=None)
-    m.add_argument("--locale",       default=None)
-    m.add_argument("--kblayout",     default=None)
-    m.add_argument("--stateversion", default=None)
+    for mf in backend.MACHINE_FIELDS:
+        m.add_argument(mf["cli_flag"], default=None)
     m.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     m.set_defaults(func=_cmd_set_machine)
 
     # set-features
     f = sub.add_parser("set-features", help="Enable/disable optional features (requires root)")
-    f.add_argument("--ssh",    dest="ssh",   action="store_true",  default=None)
-    f.add_argument("--no-ssh", dest="ssh",   action="store_false")
-    f.add_argument("--kiosk",       dest="kiosk",    action="store_true",  default=None)
-    f.add_argument("--no-kiosk",    dest="kiosk",    action="store_false")
-    f.add_argument("--rustdesk",    dest="rustdesk", action="store_true",  default=None)
-    f.add_argument("--no-rustdesk", dest="rustdesk", action="store_false")
-    f.add_argument("--nvidia",           dest="nvidia",        action="store_true",  default=None)
-    f.add_argument("--no-nvidia",        dest="nvidia",        action="store_false")
-    f.add_argument("--canon-printer",    dest="canon_printer", action="store_true",  default=None)
-    f.add_argument("--no-canon-printer", dest="canon_printer", action="store_false")
-    f.add_argument("--zfs",           dest="zfs",       action="store_true",  default=None)
-    f.add_argument("--no-zfs",        dest="zfs",       action="store_false")
-    f.add_argument("--tailscale",              dest="tailscale",         action="store_true",  default=None)
-    f.add_argument("--no-tailscale",           dest="tailscale",         action="store_false")
-    f.add_argument("--logitech-wireless",      dest="logitech_wireless", action="store_true",  default=None)
-    f.add_argument("--no-logitech-wireless",   dest="logitech_wireless", action="store_false")
+    for feat in backend.FEATURE_CATALOG:
+        flag = feat["id"].replace("_", "-")
+        dest = feat["id"]
+        f.add_argument(f"--{flag}",    dest=dest, action="store_true",  default=None)
+        f.add_argument(f"--no-{flag}", dest=dest, action="store_false")
     f.add_argument("--rebuild", action="store_true", help="Run nixos-rebuild after saving")
     f.set_defaults(func=_cmd_set_features)
 
@@ -273,12 +251,8 @@ def build_parser() -> argparse.ArgumentParser:
                     help="JSON object mapping feature keys to booleans")
     sa.add_argument("--apps",       nargs="*", default=None, metavar="APP_ID")
     sa.add_argument("--extensions", nargs="*", default=None, metavar="EXT_ID")
-    sa.add_argument("--hostname",     default=None)
-    sa.add_argument("--username",     default=None)
-    sa.add_argument("--userdesc",     default=None)
-    sa.add_argument("--timezone",     default=None)
-    sa.add_argument("--locale",       default=None)
-    sa.add_argument("--kblayout",     default=None)
+    for mf in backend.MACHINE_FIELDS:
+        sa.add_argument(mf["cli_flag"], default=None)
     sa.add_argument("--rebuild",   action="store_true", help="Save + run nixos-rebuild")
     sa.add_argument("--channel",   default=None)
     sa.add_argument("--operation", choices=["boot", "switch"], default=None)
