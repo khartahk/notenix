@@ -243,6 +243,12 @@ class ChannelWindow(Adw.Window):
         self._tailscale_row.set_active(features.get(backend.KEY_FEATURE_TAILSCALE, False))
         feat_group.add(self._tailscale_row)
 
+        self._logitech_wireless_row = Adw.SwitchRow()
+        self._logitech_wireless_row.set_title("Logitech Wireless")
+        self._logitech_wireless_row.set_subtitle("Solaar device manager + udev rules for Unifying/Bolt receivers")
+        self._logitech_wireless_row.set_active(features.get(backend.KEY_FEATURE_LOGITECH_WIRELESS, False))
+        feat_group.add(self._logitech_wireless_row)
+
         self._stack.add_titled(features_page, "features", "Features")
 
         # ══ Extensions page ═══════════════════════════════════════════════════
@@ -576,8 +582,9 @@ class ChannelWindow(Adw.Window):
             backend.KEY_FEATURE_RUSTDESK:      self._rustdesk_row.get_active(),
             backend.KEY_FEATURE_NVIDIA:        self._nvidia_row.get_active(),
             backend.KEY_FEATURE_CANON_PRINTER: self._canon_printer_row.get_active(),
-            backend.KEY_FEATURE_ZFS:           self._zfs_row.get_active(),
-            backend.KEY_FEATURE_TAILSCALE:     self._tailscale_row.get_active(),
+            backend.KEY_FEATURE_ZFS:                    self._zfs_row.get_active(),
+            backend.KEY_FEATURE_TAILSCALE:              self._tailscale_row.get_active(),
+            backend.KEY_FEATURE_LOGITECH_WIRELESS:      self._logitech_wireless_row.get_active(),
         }
         self._set_busy(True, self._save_features_btn, "Saving...")
         threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()

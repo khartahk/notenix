@@ -52,6 +52,12 @@ in
       default     = false;
       description = "Enable Tailscale VPN. Adds tailscale-status GNOME extension when GNOME is active.";
     };
+
+    logitechWireless = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable Solaar and udev rules for Logitech Unifying/Bolt wireless devices.";
+    };
   };
 
   config = mkMerge [
@@ -108,6 +114,10 @@ in
       networking.hostId = mkDefault (
         builtins.substring 0 8 (builtins.hashString "sha256" config.networking.hostName)
       );
+    })
+
+    (mkIf cfg.logitechWireless {
+      hardware.logitech.wireless.enable = true;
     })
 
     (mkIf cfg.tailscale {
