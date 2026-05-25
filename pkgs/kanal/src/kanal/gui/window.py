@@ -227,12 +227,14 @@ class ChannelWindow(Adw.Window):
         self._apply_btn.add_css_class("suggested-action")
         self._apply_btn.add_css_class("pill")
         self._apply_btn.set_tooltip_text("Save all changes and rebuild")
+        self._apply_btn.set_sensitive(False)
         self._apply_btn.connect("clicked", self._on_apply_clicked)
         header.pack_end(self._apply_btn)
 
         self._save_btn = Gtk.Button(label="Save")
         self._save_btn.add_css_class("pill")
         self._save_btn.set_tooltip_text("Write all changes to config files (no rebuild)")
+        self._save_btn.set_sensitive(False)
         self._save_btn.connect("clicked", self._on_save_all_clicked)
 
         action_bar = Gtk.ActionBar()
@@ -300,10 +302,37 @@ class ChannelWindow(Adw.Window):
         self._toast_overlay.set_child(toolbar_view)
         self.set_content(self._toast_overlay)
 
+        self._initial_payload = self._collect_all_payload()
+        self._connect_change_signals()
+
         if backend.is_cache_stale():
             self._start_refresh()
 
     # ── Helpers ───────────────────────────────────────────────────────────
+
+    def _connect_change_signals(self) -> None:
+        """Wire all interactive widgets to _update_buttons."""
+        cb = lambda *_: self._update_buttons()  # noqa: E731
+        self._channel_row.connect("notify::selected", cb)
+        self._preset_row.connect("notify::selected", cb)
+        self._op_now_btn.connect("notify::active", cb)
+        for mf in backend.MACHINE_FIELDS:
+            w = self._machine_widgets.get(mf["id"])
+            if w is None:
+                continue
+            if mf["widget"] == "entry":
+                w.connect("notify::text", cb)
+            elif mf["widget"] in ("dropdown_locale", "dropdown_kbd"):
+                w.connect("notify::selected", cb)
+        for rows in self._tab_rows.values():
+            for row in rows.values():
+                row.connect("notify::active", cb)
+
+    def _update_buttons(self) -> None:
+        """Enable Save/Apply iff current UI state differs from last-saved state."""
+        changed = self._collect_all_payload() != self._initial_payload
+        self._apply_btn.set_sensitive(changed)
+        self._save_btn.set_sensitive(changed)
 
     def _toast(self, message: str, timeout: int = 4) -> None:
         t = Adw.Toast.new(message)
@@ -548,6 +577,9 @@ class ChannelWindow(Adw.Window):
 
     def _done_action(self, message: str, error: str | None, btn: Gtk.Button, label: str = "Save"):
         self._set_busy(False, btn, label)
+        if not error:
+            self._initial_payload = self._collect_all_payload()
+        self._update_buttons()
         self._show_result(message, error)
 
     def _show_result(self, message: str, error: str | None = None):
