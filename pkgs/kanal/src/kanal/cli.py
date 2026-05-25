@@ -64,86 +64,66 @@ def _cmd_apply(args: argparse.Namespace) -> int:
     return rc
 
 
-def _cmd_set_machine(args: argparse.Namespace) -> int:
-    settings = {}
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def _collect_machine(args: argparse.Namespace) -> dict:
+    """Map CLI args → {nix_key: value} for all machine fields present in args."""
+    out = {}
     for mf in backend.MACHINE_FIELDS:
         dest = mf["cli_flag"][2:].replace("-", "_")
         val = getattr(args, dest, None)
         if val is not None:
-            settings[mf["nix_key"]] = val
+            out[mf["nix_key"]] = val
+    return out
+
+
+def _do_rebuild() -> int:
+    """Run nixos-rebuild using the current channel/operation from status."""
+    status = backend.read_status()
+    print(f"Running nixos-rebuild {status.operation}…", flush=True)
+    rc, _ = backend.run_upgrade(status.channel, status.operation)
+    if rc != 0:
+        print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
+    return rc
+
+
+def _save_and_rebuild(save_fn, data, success_msg: str, args: argparse.Namespace) -> int:
+    """Call save_fn(data), print success_msg, optionally rebuild. Returns exit code."""
     try:
-        backend.save_machine(settings)
+        save_fn(data)
     except OSError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    print("Machine settings saved.", flush=True)
-    if args.rebuild:
-        status = backend.read_status()
-        print(f"Running nixos-rebuild {status.operation}…", flush=True)
-        rc, _ = backend.run_upgrade(status.channel, status.operation)
-        if rc != 0:
-            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
-        return rc
-    return 0
+    print(success_msg, flush=True)
+    return _do_rebuild() if args.rebuild else 0
+
+
+# ---------------------------------------------------------------------------
+# Subcommand handlers
+# ---------------------------------------------------------------------------
+
+def _cmd_set_machine(args: argparse.Namespace) -> int:
+    return _save_and_rebuild(backend.save_machine, _collect_machine(args),
+                             "Machine settings saved.", args)
 
 
 def _cmd_set_features(args: argparse.Namespace) -> int:
-    features: dict[str, bool] = {}
-    for f in backend.FEATURE_CATALOG:
-        dest = f["id"].replace("-", "_")
-        val = getattr(args, dest, None)
-        if val is not None:
-            features[f["key"]] = val
-    try:
-        backend.save_features(features)
-    except OSError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-    print("Feature flags saved.", flush=True)
-    if args.rebuild:
-        status = backend.read_status()
-        print(f"Running nixos-rebuild {status.operation}…", flush=True)
-        rc, _ = backend.run_upgrade(status.channel, status.operation)
-        if rc != 0:
-            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
-        return rc
-    return 0
+    features = {f["key"]: val
+                for f in backend.FEATURE_CATALOG
+                if (val := getattr(args, f["id"], None)) is not None}
+    return _save_and_rebuild(backend.save_features, features, "Feature flags saved.", args)
 
 
 def _cmd_set_apps(args: argparse.Namespace) -> int:
-    app_ids: list[str] = args.apps or []
-    try:
-        backend.save_apps(app_ids)
-    except OSError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-    print("Flatpak app list saved.", flush=True)
-    if args.rebuild:
-        status = backend.read_status()
-        print(f"Running nixos-rebuild {status.operation}…", flush=True)
-        rc, _ = backend.run_upgrade(status.channel, status.operation)
-        if rc != 0:
-            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
-        return rc
-    return 0
+    return _save_and_rebuild(backend.save_apps, args.apps or [],
+                             "Flatpak app list saved.", args)
 
 
 def _cmd_set_extensions(args: argparse.Namespace) -> int:
-    ext_ids: list[str] = args.extensions or []
-    try:
-        backend.save_extensions(ext_ids)
-    except OSError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
-        return 1
-    print("GNOME extension list saved.", flush=True)
-    if args.rebuild:
-        status = backend.read_status()
-        print(f"Running nixos-rebuild {status.operation}…", flush=True)
-        rc, _ = backend.run_upgrade(status.channel, status.operation)
-        if rc != 0:
-            print(f"nixos-rebuild failed (exit {rc})", file=sys.stderr, flush=True)
-        return rc
-    return 0
+    return _save_and_rebuild(backend.save_extensions, args.extensions or [],
+                             "GNOME extension list saved.", args)
 
 
 def _cmd_save_all(args: argparse.Namespace) -> int:
@@ -151,12 +131,7 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
     features = json.loads(args.features_json) if args.features_json else {}
     app_ids  = args.apps       if args.apps       is not None else []
     ext_ids  = args.extensions if args.extensions is not None else []
-    settings: dict[str, str] = {}
-    for mf in backend.MACHINE_FIELDS:
-        dest = mf["cli_flag"][2:].replace("-", "_")
-        val = getattr(args, dest, None)
-        if val is not None:
-            settings[mf["nix_key"]] = val
+    settings = _collect_machine(args)
     try:
         if features:  backend.save_features(features)
         backend.save_apps(app_ids)
