@@ -223,11 +223,10 @@ class ChannelWindow(Adw.Window):
             self._stack.add_titled(page, tab_id, tab["title"])
 
         # ── Apply (header right) + Save (action bar) ──────────────────────
-        self._apply_btn = Gtk.Button(label="Apply")
+        self._apply_btn = Gtk.Button(label="Update")
         self._apply_btn.add_css_class("suggested-action")
         self._apply_btn.add_css_class("pill")
         self._apply_btn.set_tooltip_text("Save all changes and rebuild")
-        self._apply_btn.set_sensitive(False)
         self._apply_btn.connect("clicked", self._on_apply_clicked)
         header.pack_end(self._apply_btn)
 
@@ -329,10 +328,13 @@ class ChannelWindow(Adw.Window):
                 row.connect("notify::active", cb)
 
     def _update_buttons(self) -> None:
-        """Enable Save/Apply iff current UI state differs from last-saved state."""
+        """Save enabled only when dirty. Apply always enabled; label Apply/Update."""
         changed = self._collect_all_payload() != self._initial_payload
-        self._apply_btn.set_sensitive(changed)
         self._save_btn.set_sensitive(changed)
+        self._apply_btn.set_label("Apply" if changed else "Update")
+        self._apply_btn.set_tooltip_text(
+            "Save all changes and rebuild" if changed else "Rebuild with current saved config"
+        )
 
     def _toast(self, message: str, timeout: int = 4) -> None:
         t = Adw.Toast.new(message)
@@ -568,7 +570,7 @@ class ChannelWindow(Adw.Window):
         ).start()
 
     def _on_apply_clicked(self, _btn):
-        self._dispatch_save(self._apply_btn, "Apply", rebuild=True)
+        self._dispatch_save(self._apply_btn, self._apply_btn.get_label(), rebuild=True)
 
     def _on_save_all_clicked(self, _btn):
         self._dispatch_save(self._save_btn, "Save", rebuild=False)
@@ -576,9 +578,13 @@ class ChannelWindow(Adw.Window):
     # ── Result callbacks ──────────────────────────────────────────────────
 
     def _done_action(self, message: str, error: str | None, btn: Gtk.Button, label: str = "Save"):
-        self._set_busy(False, btn, label)
         if not error:
             self._initial_payload = self._collect_all_payload()
+        # Apply: sensitivity+label managed by _update_buttons; Save: restore label manually
+        if btn is self._save_btn:
+            self._set_busy(False, btn, label)
+        else:
+            btn.set_sensitive(True)
         self._update_buttons()
         self._show_result(message, error)
 
