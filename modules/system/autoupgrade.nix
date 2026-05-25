@@ -95,8 +95,8 @@ in
 
     flags = mkOption {
       type    = types.listOf types.str;
-      default = [];
-      description = "Additional flags passed to nixos-rebuild.";
+      default = [ "--upgrade" ];
+      description = "Additional flags passed to nixos-rebuild. Defaults to --upgrade to update flake inputs on each run.";
     };
 
     notify = mkOption {
