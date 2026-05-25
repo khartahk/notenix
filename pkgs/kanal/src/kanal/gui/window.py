@@ -344,7 +344,7 @@ class ChannelWindow(Adw.Window):
 
     def _start_refresh(self) -> None:
         self._reload_btn.set_sensitive(False)
-        self._reload_btn.set_tooltip_text(_("Checking for updates…"))
+        self._reload_btn.set_tooltip_text(_("Checking for updates..."))
         spinner = Gtk.Spinner()
         spinner.start()
         self._reload_btn.set_child(spinner)

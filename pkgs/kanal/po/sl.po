@@ -84,8 +84,8 @@ msgid "Rebuild with current saved config"
 msgstr "Obnovi s shranjeno konfiguracijo"
 
 #: src/kanal/gui/window.py:347
-msgid "Checking for updates..."
-msgstr "Preverjam posodobitve..."
+msgid "Checking for updates…"
+msgstr "Preverjam posodobitve…"
 
 #: src/kanal/gui/window.py:379
 msgid "Channel list updated"
@@ -117,12 +117,12 @@ msgid "Save failed"
 msgstr "Shranjevanje ni uspelo"
 
 #: src/kanal/gui/window.py:558
-msgid "Applying..."
-msgstr "Uveljavljam..."
+msgid "Applying…"
+msgstr "Uveljavljam…"
 
 #: src/kanal/gui/window.py:558
-msgid "Saving..."
-msgstr "Shranjujem..."
+msgid "Saving…"
+msgstr "Shranjujem…"
 
 #: src/kanal/gui/window.py:559
 msgid "All changes saved and applied"
