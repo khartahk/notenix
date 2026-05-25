@@ -22,6 +22,10 @@ let
               url    = "https://gitlab.com/smedius/desktop-icons-ng/-/archive/main/desktop-icons-ng-main.tar.gz";
               sha256 = cfg.dingSourceHash;
             };
+            postPatch = ''
+              ${pkgs.jq}/bin/jq '.["shell-version"] += ["45","46","47","48","49"]' \
+                metadata.json > metadata.json.tmp && mv metadata.json.tmp metadata.json
+            '';
           })
         else base;
     "tailscale-status"            = pkgs.gnomeExtensions.tailscale-status;
