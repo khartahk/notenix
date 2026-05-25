@@ -491,6 +491,58 @@ class ChannelWindow(Adw.Window):
             if label:
                 btn.set_label(label)
 
+    def _reset_log(self) -> None:
+        """Clear log panel and reset Show-more button state (call from main thread)."""
+        GLib.idle_add(self._log_buf.set_text, "")
+        GLib.idle_add(self._show_more_btn.set_visible, True)
+        GLib.idle_add(self._log_revealer.set_reveal_child, False)
+        GLib.idle_add(self._show_more_btn.set_label, "Show more")
+
+    def _run_stream_worker(
+        self,
+        stream_fn,
+        success_msg: str,
+        dry_msg: str,
+        cmd_name: str,
+        done_cb,
+    ) -> None:
+        """Consume a pkexec stream generator; call done_cb(message, error) when done.
+
+        Must be called from a worker thread.
+        """
+        self._reset_log()
+        try:
+            rc = 0
+            for item in stream_fn():
+                if item is None:
+                    break
+                if isinstance(item, tuple):
+                    _, rc = item
+                    break
+                GLib.idle_add(self._append_log, item)
+            msg = dry_msg if backend.DRY_RUN else success_msg
+            if rc == 0:
+                GLib.idle_add(done_cb, msg, None)
+            else:
+                GLib.idle_add(done_cb, "Save failed", f"{cmd_name} exited {rc}")
+        except Exception as exc:  # noqa: BLE001
+            import traceback
+            GLib.idle_add(done_cb, "Save failed", str(exc))
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
+
+    # Dispatch table: save_cmd → (stream_fn, success_msg, dry_msg)
+    _SAVE_STREAMS: dict[str, tuple] = {
+        "set-features":   (backend.pkexec_save_features_stream,   "Features saved and applied",    "[Dry run] Would save features"),
+        "set-extensions": (backend.pkexec_save_extensions_stream, "Extensions saved and applied",  "[Dry run] Would save extensions"),
+        "set-apps":       (backend.pkexec_save_apps_stream,        "App list saved and applied",    "[Dry run] Would save apps"),
+    }
+
+    def _tab_payload(self, tab: dict, rows: dict) -> dict | list:
+        """Collect row states into the payload expected by the stream function."""
+        if tab["type"] == "bool_options":
+            return {key: row.get_active() for key, row in rows.items()}
+        return [item_id for item_id, row in rows.items() if row.get_active()]
+
     # ── Callbacks ─────────────────────────────────────────────────────────
 
     def _on_reload_clicked(self, _btn):
@@ -507,157 +559,39 @@ class ChannelWindow(Adw.Window):
         threading.Thread(target=self._worker_save, args=(settings,), daemon=True).start()
 
     def _on_tab_save_clicked(self, _btn, tab_id: str):
-        rows = self._tab_rows[tab_id]
-        tab  = next(t for t in backend.get_tab_catalog() if t["id"] == tab_id)
-        btn  = self._tab_save_btns[tab_id]
+        rows    = self._tab_rows[tab_id]
+        tab     = next(t for t in backend.get_tab_catalog() if t["id"] == tab_id)
+        btn     = self._tab_save_btns[tab_id]
         self._set_busy(True, btn, "Saving...")
-
-        if tab["type"] == "bool_options":
-            payload = {key: row.get_active() for key, row in rows.items()}
-            threading.Thread(target=self._worker_save_features, args=(payload, btn), daemon=True).start()
-        elif tab["type"] == "list_option":
-            ids = [item_id for item_id, row in rows.items() if row.get_active()]
-            if tab_id == "extensions":
-                threading.Thread(target=self._worker_save_extensions, args=(ids, btn), daemon=True).start()
-            else:
-                threading.Thread(target=self._worker_save_apps, args=(ids, btn), daemon=True).start()
+        payload = self._tab_payload(tab, rows)
+        stream_base, success_msg, dry_msg = self._SAVE_STREAMS[tab["save_cmd"]]
+        stream_fn = lambda: stream_base(payload)  # noqa: E731
+        done_cb   = lambda msg, err: self._done_tab_save(msg, err, btn)  # noqa: E731
+        threading.Thread(
+            target=self._run_stream_worker,
+            args=(stream_fn, success_msg, dry_msg, tab["save_cmd"], done_cb),
+            daemon=True,
+        ).start()
 
     # ── Workers ───────────────────────────────────────────────────────────
 
     def _worker_activate(self, channel: str, op: str, preset: str, flake_url: str):
-        dry = backend.DRY_RUN
-        GLib.idle_add(self._log_buf.set_text, "")
-        GLib.idle_add(self._show_more_btn.set_visible, True)
-        GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
-        if dry:
-            GLib.idle_add(self._append_log, f"[kanal dry-run] channel={channel!r} op={op!r} preset={preset!r}\n")
-        try:
-            rc = 0
-            for item in backend.pkexec_apply_stream(channel, op, preset, flake_url=flake_url):
-                if item is None:
-                    break
-                if isinstance(item, tuple):
-                    _, rc = item
-                    break
-                GLib.idle_add(self._append_log, item)
-            if rc == 0:
-                msg = f"[Dry run] Would apply: {channel}, {op}, {preset}" if dry else "Changes saved and applied"
-                GLib.idle_add(self._done_activate, msg, None)
-            else:
-                GLib.idle_add(self._done_activate, "Upgrade failed", f"kanalctl apply exited {rc}")
-        except Exception as exc:  # noqa: BLE001
-            import traceback
-            GLib.idle_add(self._done_activate, "Upgrade failed", str(exc))
-            print(traceback.format_exc(), file=sys.stderr, flush=True)
+        self._run_stream_worker(
+            stream_fn   = lambda: backend.pkexec_apply_stream(channel, op, preset, flake_url=flake_url),
+            success_msg = "Changes saved and applied",
+            dry_msg     = f"[Dry run] Would apply: {channel}, {op}, {preset}",
+            cmd_name    = "kanalctl apply",
+            done_cb     = self._done_activate,
+        )
 
     def _worker_save(self, settings: dict[str, str]):
-        dry = backend.DRY_RUN
-        GLib.idle_add(self._log_buf.set_text, "")
-        GLib.idle_add(self._show_more_btn.set_visible, True)
-        GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
-        if dry:
-            GLib.idle_add(self._append_log, f"[kanal dry-run] save machine: {settings!r}\n")
-        try:
-            rc = 0
-            for item in backend.pkexec_save_machine_stream(settings):
-                if item is None:
-                    break
-                if isinstance(item, tuple):
-                    _, rc = item
-                    break
-                GLib.idle_add(self._append_log, item)
-            msg = "[Dry run] Would save and apply machine settings" if dry else "Machine settings saved and applied"
-            if rc == 0:
-                GLib.idle_add(self._done_save, msg, None)
-            else:
-                GLib.idle_add(self._done_save, "Save failed", f"kanalctl set-machine exited {rc}")
-        except Exception as exc:  # noqa: BLE001
-            import traceback
-            GLib.idle_add(self._done_save, "Save failed", str(exc))
-            print(traceback.format_exc(), file=sys.stderr, flush=True)
-
-    def _worker_save_features(self, features: dict, btn: Gtk.Button):
-        dry = backend.DRY_RUN
-        GLib.idle_add(self._log_buf.set_text, "")
-        GLib.idle_add(self._show_more_btn.set_visible, True)
-        GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
-        if dry:
-            GLib.idle_add(self._append_log, f"[kanal dry-run] features: {features!r}\n")
-        try:
-            rc = 0
-            for item in backend.pkexec_save_features_stream(features):
-                if item is None:
-                    break
-                if isinstance(item, tuple):
-                    _, rc = item
-                    break
-                GLib.idle_add(self._append_log, item)
-            msg = "[Dry run] Would save features" if dry else "Features saved and applied"
-            if rc == 0:
-                GLib.idle_add(self._done_tab_save, msg, None, btn)
-            else:
-                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-features exited {rc}", btn)
-        except Exception as exc:  # noqa: BLE001
-            import traceback
-            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
-            print(traceback.format_exc(), file=sys.stderr, flush=True)
-
-    def _worker_save_apps(self, app_ids: list[str], btn: Gtk.Button):
-        dry = backend.DRY_RUN
-        GLib.idle_add(self._log_buf.set_text, "")
-        GLib.idle_add(self._show_more_btn.set_visible, True)
-        GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
-        if dry:
-            GLib.idle_add(self._append_log, f"[kanal dry-run] apps: {app_ids!r}\n")
-        try:
-            rc = 0
-            for item in backend.pkexec_save_apps_stream(app_ids):
-                if item is None:
-                    break
-                if isinstance(item, tuple):
-                    _, rc = item
-                    break
-                GLib.idle_add(self._append_log, item)
-            msg = "[Dry run] Would save apps" if dry else "App list saved and applied"
-            if rc == 0:
-                GLib.idle_add(self._done_tab_save, msg, None, btn)
-            else:
-                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-apps exited {rc}", btn)
-        except Exception as exc:  # noqa: BLE001
-            import traceback
-            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
-            print(traceback.format_exc(), file=sys.stderr, flush=True)
-
-    def _worker_save_extensions(self, ext_ids: list[str], btn: Gtk.Button):
-        dry = backend.DRY_RUN
-        GLib.idle_add(self._log_buf.set_text, "")
-        GLib.idle_add(self._show_more_btn.set_visible, True)
-        GLib.idle_add(self._log_revealer.set_reveal_child, False)
-        GLib.idle_add(self._show_more_btn.set_label, "Show more")
-        if dry:
-            GLib.idle_add(self._append_log, f"[kanal dry-run] extensions: {ext_ids!r}\n")
-        try:
-            rc = 0
-            for item in backend.pkexec_save_extensions_stream(ext_ids):
-                if item is None:
-                    break
-                if isinstance(item, tuple):
-                    _, rc = item
-                    break
-                GLib.idle_add(self._append_log, item)
-            msg = "[Dry run] Would save extensions" if dry else "Extensions saved and applied"
-            if rc == 0:
-                GLib.idle_add(self._done_tab_save, msg, None, btn)
-            else:
-                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-extensions exited {rc}", btn)
-        except Exception as exc:  # noqa: BLE001
-            import traceback
-            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
-            print(traceback.format_exc(), file=sys.stderr, flush=True)
+        self._run_stream_worker(
+            stream_fn   = lambda: backend.pkexec_save_machine_stream(settings),
+            success_msg = "Machine settings saved and applied",
+            dry_msg     = "[Dry run] Would save and apply machine settings",
+            cmd_name    = "kanalctl set-machine",
+            done_cb     = self._done_save,
+        )
 
     def _done_activate(self, message: str, error: str | None = None):
         self._set_busy(False, self._activate_btn, "Save")

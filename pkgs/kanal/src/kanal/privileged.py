@@ -38,6 +38,27 @@ from kanal.constants import (
     NIXOS_REBUILD_BIN,
 )
 
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _pkexec_stream(cmd: list[str], dry_msg: str):
+    """Core: dry-run guard → Popen → yield lines → (None, returncode) sentinel."""
+    if DRY_RUN:
+        yield f"[kanal dry-run] {dry_msg}\n"
+        yield None, 0
+        return
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
+    )
+    for line in proc.stdout:
+        yield line
+    proc.wait()
+    yield None, proc.returncode
+
+
 # Mapping from machine.nix key to kanalctl --flag
 _MACHINE_FLAGS: dict[str, str] = {
     KEY_HOSTNAME:     "--hostname",
@@ -134,24 +155,12 @@ def pkexec_apply_stream(
     flake_url: str | None = None,
 ):
     """Like ``pkexec_apply`` but yields log lines, then ``(None, returncode)``."""
-    if DRY_RUN:
-        yield f"[kanal dry-run] pkexec_apply({channel!r}, {operation!r}, {preset!r}, url={flake_url!r})\n"
-        yield None, 0
-        return
     cmd = ["pkexec", KANALCTL_BIN, "apply", channel, operation]
     if preset is not None:
         cmd += ["--preset", preset]
     if flake_url is not None:
         cmd += ["--flake-url", flake_url]
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
-    for line in proc.stdout:
-        yield line
-    proc.wait()
-    yield None, proc.returncode
+    yield from _pkexec_stream(cmd, f"pkexec_apply({channel!r}, {operation!r}, {preset!r}, url={flake_url!r})")
 
 
 def pkexec_save_machine(settings: dict[str, str]) -> tuple[int, str]:
@@ -169,31 +178,15 @@ def pkexec_save_machine(settings: dict[str, str]) -> tuple[int, str]:
 
 def pkexec_save_machine_stream(settings: dict[str, str]):
     """Invoke ``pkexec kanalctl set-machine --rebuild`` and stream output."""
-    if DRY_RUN:
-        yield f"[kanal dry-run] pkexec_save_machine({settings!r})\n"
-        yield None, 0
-        return
     cmd = ["pkexec", KANALCTL_BIN, "set-machine", "--rebuild"]
     for key, flag in _MACHINE_FLAGS.items():
         if settings.get(key):
             cmd += [flag, settings[key]]
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
-    for line in proc.stdout:
-        yield line
-    proc.wait()
-    yield None, proc.returncode
+    yield from _pkexec_stream(cmd, f"pkexec_save_machine({settings!r})")
 
 
 def pkexec_save_features_stream(features: dict[str, bool], rebuild: bool = True):
     """Invoke ``pkexec kanalctl set-features`` and stream output."""
-    if DRY_RUN:
-        yield f"[kanal dry-run] set-features: {features!r}\n"
-        yield None, 0
-        return
     cmd = ["pkexec", KANALCTL_BIN, "set-features"]
     for key, enabled in features.items():
         flag = {KEY_FEATURE_SSH: "--ssh", KEY_FEATURE_KIOSK: "--kiosk", KEY_FEATURE_RUSTDESK: "--rustdesk", KEY_FEATURE_NVIDIA: "--nvidia", KEY_FEATURE_CANON_PRINTER: "--canon-printer", KEY_FEATURE_ZFS: "--zfs", KEY_FEATURE_TAILSCALE: "--tailscale", KEY_FEATURE_LOGITECH_WIRELESS: "--logitech-wireless"}.get(key)
@@ -201,52 +194,20 @@ def pkexec_save_features_stream(features: dict[str, bool], rebuild: bool = True)
             cmd.append(flag if enabled else flag.replace("--", "--no-"))
     if rebuild:
         cmd.append("--rebuild")
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
-    for line in proc.stdout:
-        yield line
-    proc.wait()
-    yield None, proc.returncode
+    yield from _pkexec_stream(cmd, f"set-features: {features!r}")
 
 
 def pkexec_save_apps_stream(app_ids: list[str], rebuild: bool = True):
     """Invoke ``pkexec kanalctl set-apps`` and stream output."""
-    if DRY_RUN:
-        yield f"[kanal dry-run] set-apps: {app_ids!r}\n"
-        yield None, 0
-        return
     cmd = ["pkexec", KANALCTL_BIN, "set-apps"] + app_ids
     if rebuild:
         cmd.append("--rebuild")
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
-    for line in proc.stdout:
-        yield line
-    proc.wait()
-    yield None, proc.returncode
+    yield from _pkexec_stream(cmd, f"set-apps: {app_ids!r}")
 
 
 def pkexec_save_extensions_stream(ext_ids: list[str], rebuild: bool = True):
     """Invoke ``pkexec kanalctl set-extensions`` and stream output."""
-    if DRY_RUN:
-        yield f"[kanal dry-run] set-extensions: {ext_ids!r}\n"
-        yield None, 0
-        return
     cmd = ["pkexec", KANALCTL_BIN, "set-extensions"] + ext_ids
     if rebuild:
         cmd.append("--rebuild")
-    env = os.environ.copy()
-    env["PYTHONUNBUFFERED"] = "1"
-    proc = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
-    )
-    for line in proc.stdout:
-        yield line
-    proc.wait()
-    yield None, proc.returncode
+    yield from _pkexec_stream(cmd, f"set-extensions: {ext_ids!r}")
