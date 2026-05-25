@@ -134,11 +134,13 @@ def _make_tab_handler(tab: dict):
 
 def _cmd_save_all(args: argparse.Namespace) -> int:
     """Save features, apps, extensions, and machine settings in one root call."""
-    tab_args = {
-        "set-features":  json.loads(args.features_json) if args.features_json else {},
-        "set-apps":      args.apps       if args.apps       is not None else [],
-        "set-extensions": args.extensions if args.extensions is not None else [],
-    }
+    tab_args = {}
+    for tab in backend.TAB_CATALOG:
+        if tab["type"] == "bool_options":
+            json_val = getattr(args, f"{tab['id']}_json", None)
+            tab_args[tab["save_cmd"]] = json.loads(json_val) if json_val else {}
+        else:
+            tab_args[tab["save_cmd"]] = getattr(args, tab["id"], None) or []
     settings = _collect_machine(args)
     try:
         for save_cmd, data in tab_args.items():
@@ -221,10 +223,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     # save-all
     sa = sub.add_parser("save-all", help="Save all settings atomically (requires root)")
-    sa.add_argument("--features-json", dest="features_json", default=None,
-                    help="JSON object mapping feature keys to booleans")
-    sa.add_argument("--apps",       nargs="*", default=None, metavar="APP_ID")
-    sa.add_argument("--extensions", nargs="*", default=None, metavar="EXT_ID")
+    for tab in backend.TAB_CATALOG:
+        if tab["type"] == "bool_options":
+            sa.add_argument(f"--{tab['id']}-json", dest=f"{tab['id']}_json", default=None,
+                            help=f"JSON object mapping {tab['id']} keys to booleans")
+        else:
+            sa.add_argument(f"--{tab['id']}", nargs="*", default=None, metavar="ID")
     for mf in backend.MACHINE_FIELDS:
         sa.add_argument(mf["cli_flag"], default=None)
     sa.add_argument("--rebuild",   action="store_true", help="Save + run nixos-rebuild")

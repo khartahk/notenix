@@ -22,28 +22,57 @@
 # Machine identity fields written to machine.nix.
 # Each entry: id (Python constant suffix), nix_key, cli_flag
 machine:
+  groups:
+    - id: identity
+      title: Identity
+    - id: locale
+      title: Locale
+    - id: system
+      title: System
   fields:
     - id: hostname
       nix_key: notenix.system.install.hostName
       cli_flag: --hostname
+      label: Hostname
+      group: identity
+      widget: entry
     - id: username
       nix_key: notenix.system.install.userName
       cli_flag: --username
+      label: Username
+      group: identity
+      widget: entry
     - id: userdesc
       nix_key: notenix.system.install.userDescription
       cli_flag: --userdesc
+      label: Full name
+      group: identity
+      widget: entry
     - id: timezone
       nix_key: notenix.system.install.timeZone
       cli_flag: --timezone
+      label: Timezone
+      group: locale
+      widget: entry
     - id: locale
       nix_key: notenix.system.install.locale
       cli_flag: --locale
+      label: Language
+      group: locale
+      widget: dropdown_locale
     - id: kblayout
       nix_key: notenix.system.install.keyboardLayout
       cli_flag: --kblayout
+      label: Keyboard layout
+      group: locale
+      widget: dropdown_kbd
     - id: stateversion
       nix_key: system.stateVersion
       cli_flag: --stateversion
+      label: State version
+      subtitle: Set at install time - do not change
+      group: system
+      widget: readonly
 
 tabs:
   - id: features

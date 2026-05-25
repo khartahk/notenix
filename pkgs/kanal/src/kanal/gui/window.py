@@ -104,90 +104,75 @@ class ChannelWindow(Adw.Window):
 
         self._stack.add_titled(channel_page, "channel", "Channel")
 
-        # ══ Machine page ══════════════════════════════════════════════════
+        # ══ Machine page ═════════════════════════════════════════════════════════════
         machine_page = Adw.PreferencesPage()
+        self._machine_widgets: dict = {}
 
-        identity_group = Adw.PreferencesGroup()
-        identity_group.set_title("Identity")
-        machine_page.add(identity_group)
+        _mgroups: dict[str, Adw.PreferencesGroup] = {}
+        for g in backend.MACHINE_GROUPS:
+            grp = Adw.PreferencesGroup()
+            grp.set_title(g["title"])
+            machine_page.add(grp)
+            _mgroups[g["id"]] = grp
 
-        self._hostname_row = Adw.EntryRow()
-        self._hostname_row.set_title("Hostname")
-        self._hostname_row.set_text(machine.get(backend.KEY_HOSTNAME, ""))
-        identity_group.add(self._hostname_row)
-
-        self._username_row = Adw.EntryRow()
-        self._username_row.set_title("Username")
-        self._username_row.set_text(machine.get(backend.KEY_USERNAME, ""))
-        identity_group.add(self._username_row)
-
-        self._userdesc_row = Adw.EntryRow()
-        self._userdesc_row.set_title("Full name")
-        self._userdesc_row.set_text(machine.get(backend.KEY_USERDESC, ""))
-        identity_group.add(self._userdesc_row)
-
-        locale_group = Adw.PreferencesGroup()
-        locale_group.set_title("Locale")
-        machine_page.add(locale_group)
-
-        self._timezone_row = Adw.EntryRow()
-        self._timezone_row.set_title("Timezone")
-        self._timezone_row.set_text(machine.get(backend.KEY_TIMEZONE, ""))
-        locale_group.add(self._timezone_row)
-
-        locale_pairs        = backend.list_locales()
-        self._locale_ids    = [p[0] for p in locale_pairs]
-        self._locale_labels = [p[1] for p in locale_pairs]
-        cur_locale          = machine.get(backend.KEY_LOCALE, "")
-
-        locale_model      = Gtk.StringList.new(self._locale_labels)
-        self._locale_drop = Adw.ComboRow()
-        self._locale_drop.set_title("Language")
-        self._locale_drop.set_model(locale_model)
-        self._locale_drop.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
-        self._locale_drop.set_enable_search(True)
-        locale_idx = self._locale_ids.index(cur_locale) if cur_locale in self._locale_ids else 0
-        self._locale_drop.set_selected(locale_idx)
-        self._locale_drop.connect("notify::selected", self._on_locale_changed)
-        locale_group.add(self._locale_drop)
-
-        kbd_pairs        = backend.list_kbd_layouts()
-        self._kbd_codes  = [p[0] for p in kbd_pairs]
-        self._kbd_labels = [p[1] for p in kbd_pairs]
-        cur_kbd          = machine.get(backend.KEY_KBLAYOUT, "")
-
-        kbd_model        = Gtk.StringList.new(self._kbd_labels)
-        self._kbd_drop   = Adw.ComboRow()
-        self._kbd_drop.set_title("Keyboard layout")
-        self._kbd_drop.set_model(kbd_model)
-        self._kbd_drop.set_expression(
-            Gtk.PropertyExpression.new(Gtk.StringObject, None, "string")
-        )
-        self._kbd_drop.set_enable_search(True)
-        kbd_idx = self._kbd_codes.index(cur_kbd) if cur_kbd in self._kbd_codes else 0
-        self._kbd_drop.set_selected(kbd_idx)
-        self._kbd_user_set = bool(cur_kbd and cur_kbd in self._kbd_codes)
+        _cur_locale        = ""
+        self._kbd_user_set = False
         self._kbd_syncing  = False
-        self._kbd_drop.connect("notify::selected", self._on_kbd_manually_changed)
-        locale_group.add(self._kbd_drop)
+        for mf in backend.MACHINE_FIELDS:
+            grp = _mgroups[mf["group"]]
+            wt  = mf["widget"]
+            cur = machine.get(mf["nix_key"], "")
+
+            if wt == "entry":
+                row = Adw.EntryRow()
+                row.set_title(mf["label"])
+                row.set_text(cur)
+                grp.add(row)
+                self._machine_widgets[mf["id"]] = row
+
+            elif wt == "dropdown_locale":
+                locale_pairs     = backend.list_locales()
+                self._locale_ids = [p[0] for p in locale_pairs]
+                _cur_locale      = cur
+                row = Adw.ComboRow()
+                row.set_title(mf["label"])
+                row.set_model(Gtk.StringList.new([p[1] for p in locale_pairs]))
+                row.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
+                row.set_enable_search(True)
+                row.set_selected(self._locale_ids.index(cur) if cur in self._locale_ids else 0)
+                row.connect("notify::selected", self._on_locale_changed)
+                grp.add(row)
+                self._locale_drop = row
+                self._machine_widgets[mf["id"]] = row
+
+            elif wt == "dropdown_kbd":
+                kbd_pairs        = backend.list_kbd_layouts()
+                self._kbd_codes  = [p[0] for p in kbd_pairs]
+                row = Adw.ComboRow()
+                row.set_title(mf["label"])
+                row.set_model(Gtk.StringList.new([p[1] for p in kbd_pairs]))
+                row.set_expression(Gtk.PropertyExpression.new(Gtk.StringObject, None, "string"))
+                row.set_enable_search(True)
+                row.set_selected(self._kbd_codes.index(cur) if cur in self._kbd_codes else 0)
+                self._kbd_user_set = bool(cur and cur in self._kbd_codes)
+                row.connect("notify::selected", self._on_kbd_manually_changed)
+                grp.add(row)
+                self._kbd_drop = row
+                self._machine_widgets[mf["id"]] = row
+
+            elif wt == "readonly":
+                row = Adw.ActionRow()
+                row.set_title(mf["label"])
+                if mf.get("subtitle"):
+                    row.set_subtitle(mf["subtitle"])
+                lbl = Gtk.Label(label=cur)
+                lbl.add_css_class("dim-label")
+                lbl.set_valign(Gtk.Align.CENTER)
+                row.add_suffix(lbl)
+                grp.add(row)
 
         if not self._kbd_user_set:
-            self._sync_kbd_from_locale(cur_locale)
-
-        sys_group = Adw.PreferencesGroup()
-        sys_group.set_title("System")
-        machine_page.add(sys_group)
-
-        self._stateversion_row = Adw.ActionRow()
-        self._stateversion_row.set_title("State version")
-        self._stateversion_row.set_subtitle("Set at install time - do not change")
-        _sv_label = Gtk.Label(label=machine.get(backend.KEY_STATEVERSION, ""))
-        _sv_label.add_css_class("dim-label")
-        _sv_label.set_valign(Gtk.Align.CENTER)
-        self._stateversion_row.add_suffix(_sv_label)
-        sys_group.add(self._stateversion_row)
+            self._sync_kbd_from_locale(_cur_locale)
 
         self._stack.add_titled(machine_page, "machine", "Machine")
 
@@ -428,16 +413,21 @@ class ChannelWindow(Adw.Window):
         return channel, op, preset, flake_url
 
     def _machine_settings(self) -> dict[str, str]:
-        locale_idx = self._locale_drop.get_selected()
-        kbd_idx    = self._kbd_drop.get_selected()
-        return {
-            backend.KEY_HOSTNAME: self._hostname_row.get_text(),
-            backend.KEY_USERNAME: self._username_row.get_text(),
-            backend.KEY_USERDESC: self._userdesc_row.get_text(),
-            backend.KEY_TIMEZONE: self._timezone_row.get_text(),
-            backend.KEY_LOCALE:   self._locale_ids[locale_idx] if locale_idx < len(self._locale_ids) else "",
-            backend.KEY_KBLAYOUT: self._kbd_codes[kbd_idx] if kbd_idx < len(self._kbd_codes) else "",
-        }
+        result = {}
+        for mf in backend.MACHINE_FIELDS:
+            widget = self._machine_widgets.get(mf["id"])
+            if widget is None:
+                continue
+            wt = mf["widget"]
+            if wt == "entry":
+                result[mf["nix_key"]] = widget.get_text()
+            elif wt == "dropdown_locale":
+                idx = widget.get_selected()
+                result[mf["nix_key"]] = self._locale_ids[idx] if idx < len(self._locale_ids) else ""
+            elif wt == "dropdown_kbd":
+                idx = widget.get_selected()
+                result[mf["nix_key"]] = self._kbd_codes[idx] if idx < len(self._kbd_codes) else ""
+        return result
 
     def _on_locale_changed(self, drop, _param) -> None:
         if self._kbd_user_set:
@@ -516,16 +506,15 @@ class ChannelWindow(Adw.Window):
     def _collect_all_payload(self) -> dict:
         """Gather current UI state from all tabs + machine form into a single payload dict."""
         channel, op, preset, flake_url = self._channel_selection()
-        return {
-            "features":   {key: row.get_active() for key, row in self._tab_rows.get("features",   {}).items()},
-            "extensions": [eid for eid, row in self._tab_rows.get("extensions", {}).items() if row.get_active()],
-            "apps":       [aid for aid, row in self._tab_rows.get("apps",       {}).items() if row.get_active()],
-            "machine":    self._machine_settings(),
-            "channel":    channel,
-            "operation":  op,
-            "preset":     preset,
-            "flake_url":  flake_url,
-        }
+        payload: dict = {}
+        for tab in backend.TAB_CATALOG:
+            rows = self._tab_rows.get(tab["id"], {})
+            if tab["type"] == "bool_options":
+                payload[tab["id"]] = {key: row.get_active() for key, row in rows.items()}
+            else:
+                payload[tab["id"]] = [k for k, row in rows.items() if row.get_active()]
+        return {**payload, "machine": self._machine_settings(),
+                "channel": channel, "operation": op, "preset": preset, "flake_url": flake_url}
 
     # ── Callbacks ─────────────────────────────────────────────────────────
 

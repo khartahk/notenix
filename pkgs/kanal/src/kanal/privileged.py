@@ -22,6 +22,7 @@ from kanal.constants import (
     MACHINE_KEY_FLAGS,
     NIX_BIN,
     NIXOS_REBUILD_BIN,
+    TAB_CATALOG,
 )
 
 # ---------------------------------------------------------------------------
@@ -94,14 +95,14 @@ def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
                   channel (str), operation (str), preset (str), flake_url (str).
     With rebuild=True also sets the channel and runs nixos-rebuild.
     """
-    cmd = [
-        "pkexec", KANALCTL_BIN, "save-all",
-        "--features-json", json.dumps(payload["features"]),
-    ]
-    if payload.get("apps"):
-        cmd += ["--apps", *payload["apps"]]
-    if payload.get("extensions"):
-        cmd += ["--extensions", *payload["extensions"]]
+    cmd = ["pkexec", KANALCTL_BIN, "save-all"]
+    for tab in TAB_CATALOG:
+        tab_id = tab["id"]
+        data   = payload.get(tab_id)
+        if tab["type"] == "bool_options":
+            cmd += [f"--{tab_id}-json", json.dumps(data if data is not None else {})]
+        elif data:
+            cmd += [f"--{tab_id}", *data]
     for key, flag in _MACHINE_FLAGS.items():
         if payload["machine"].get(key):
             cmd += [flag, payload["machine"][key]]

@@ -23,14 +23,12 @@ from kanal.constants import (
     KEY_FLATPAK_PACKAGES,
     KEY_GNOME_EXTENSIONS,
     KEY_HOSTNAME,
-    KEY_KBLAYOUT,
     KEY_LOCALE,
     KEY_STATEVERSION,
     KEY_TIMEZONE,
     KEY_USERDESC,
     KEY_USERNAME,
     MACHINE_FIELDS,
-    MACHINE_KEY_FLAGS,
     MACHINE_PATH,
 )
 from kanal.nixfiles import _get_value, _get_list, _remove_key, _upsert_bool, _upsert_list, _upsert_value
