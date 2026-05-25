@@ -117,7 +117,8 @@ in
     })
 
     (mkIf cfg.logitechWireless {
-      hardware.logitech.wireless.enable = true;
+      hardware.logitech.wireless.enable         = true;
+      hardware.logitech.wireless.enableGraphical = true;  # installs Solaar
     })
 
     (mkIf cfg.tailscale {
