@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
+import importlib.resources
 import sys
 import threading
 
 import gi
 
 gi.require_version("Gtk", "4.0")
+gi.require_version("Gdk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Adw, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
 from kanal import backend
 
@@ -622,6 +624,8 @@ class ChannelApp(Adw.Application):
         self.connect("activate", self._on_activate)
 
     def _on_activate(self, _app):
+        icons_dir = str(importlib.resources.files("kanal").joinpath("icons"))
+        Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).add_search_path(icons_dir)
         ChannelWindow(application=self).present()
 
     def run_gui(self) -> int:

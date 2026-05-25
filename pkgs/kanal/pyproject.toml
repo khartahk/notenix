@@ -17,7 +17,7 @@ package-dir = {"" = "src"}
 packages    = ["kanal", "kanal.gui"]
 
 [tool.setuptools.package-data]
-kanal = ["*.yaml"]
+kanal = ["*.yaml", "icons/hicolor/scalable/actions/*.svg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
