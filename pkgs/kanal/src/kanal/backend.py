@@ -63,15 +63,7 @@ from kanal.locales import kbd_default_for_locale, list_kbd_layouts, list_locales
 
 # Privileged subprocess helpers
 from kanal.privileged import (
-    pkexec_apply,
-    pkexec_apply_stream,
-    pkexec_save_apps_stream,
-    pkexec_save_extensions_stream,
     pkexec_save_all_stream,
-    pkexec_save_features_stream,
-    pkexec_save_machine,
-    pkexec_save_machine_stream,
-    pkexec_set,
     run_upgrade,
 )
 
@@ -97,9 +89,5 @@ __all__ = [
     # locales
     "kbd_default_for_locale", "list_kbd_layouts", "list_locales",
     # privileged
-    "pkexec_apply", "pkexec_apply_stream", "pkexec_save_apps_stream",
-    "pkexec_save_extensions_stream",
-    "pkexec_save_all_stream",
-    "pkexec_save_features_stream", "pkexec_save_machine", "pkexec_save_machine_stream",
-    "pkexec_set", "run_upgrade",
+    "pkexec_save_all_stream", "run_upgrade",
 ]
