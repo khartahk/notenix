@@ -1,75 +1,170 @@
-# Feature catalog for notenix/kanal.
-# Each entry defines one feature flag toggle in the GUI and one NixOS option.
+# kanal UI catalog -- single source of truth for all dynamic tabs.
 #
-# Fields:
-#   key      - NixOS option path written to machine.nix
-#   id       - camelCase NixOS option name (last segment of key)
-#   const    - Python constant suffix for KEY_FEATURE_<const> (backward compat)
-#   title    - Display name in the GUI
-#   subtitle - Description in the GUI
-#   default  - Default value (always false; NixOS module defaults match)
-#   extra    - Optional side-effect applied when the feature is toggled (see types below)
+# Top-level: tabs (ordered list; rendered after the fixed Channel + Machine tabs)
 #
-# extra types:
-#   gnome_extension:
-#     value: <extension-id>  — synced into notenix.desktop.gnome.extensions
+# Tab fields:
+#   id          - internal identifier; matches the GTK stack child name
+#   title       - sidebar label
+#   description - shown as group description
+#   type        - storage model:
+#                   bool_options  -- each item is a separate bool NixOS option
+#                   list_option   -- all checked item ids written as one Nix list
+#   nix_key     - (list_option) NixOS option key for the list
+#   save_cmd    - kanalctl subcommand (for reference)
+#   items       - SwitchRow entries
+#
+# bool_options item fields: key, id, const, title, subtitle, default[, extra]
+# list_option  item fields: id, title, subtitle, default
+#
+# extra (bool_options only):
+#   type: gnome_extension  -> value synced into notenix.desktop.gnome.extensions
 
-features:
-  - key: notenix.features.ssh
-    id: ssh
-    const: SSH
-    title: SSH server
-    subtitle: "OpenSSH — password auth, root login disabled"
-    default: false
+tabs:
+  - id: features
+    title: Features
+    description: "These are applied on top of the selected preset"
+    type: bool_options
+    save_cmd: set-features
+    items:
+      - key: notenix.features.ssh
+        id: ssh
+        const: SSH
+        title: SSH server
+        subtitle: "OpenSSH -- password auth, root login disabled"
+        default: false
 
-  - key: notenix.features.kiosk
-    id: kiosk
-    const: KIOSK
-    title: Kiosk mode
-    subtitle: "Auto-login, no screen lock"
-    default: false
+      - key: notenix.features.kiosk
+        id: kiosk
+        const: KIOSK
+        title: Kiosk mode
+        subtitle: "Auto-login, no screen lock"
+        default: false
 
-  - key: notenix.features.rustdesk
-    id: rustdesk
-    const: RUSTDESK
-    title: RustDesk
-    subtitle: "Remote desktop — allows controlling this machine remotely"
-    default: false
+      - key: notenix.features.rustdesk
+        id: rustdesk
+        const: RUSTDESK
+        title: RustDesk
+        subtitle: "Remote desktop -- allows controlling this machine remotely"
+        default: false
 
-  - key: notenix.features.nvidia
-    id: nvidia
-    const: NVIDIA
-    title: NVIDIA drivers
-    subtitle: "Proprietary NVIDIA graphics drivers"
-    default: false
+      - key: notenix.features.nvidia
+        id: nvidia
+        const: NVIDIA
+        title: NVIDIA drivers
+        subtitle: "Proprietary NVIDIA graphics drivers"
+        default: false
 
-  - key: notenix.features.canonPrinter
-    id: canonPrinter
-    const: CANON_PRINTER
-    title: Canon printer
-    subtitle: "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
-    default: false
+      - key: notenix.features.canonPrinter
+        id: canonPrinter
+        const: CANON_PRINTER
+        title: Canon printer
+        subtitle: "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
+        default: false
 
-  - key: notenix.features.zfs
-    id: zfs
-    const: ZFS
-    title: ZFS support
-    subtitle: "Enable ZFS kernel module for mounting ZFS pools"
-    default: false
+      - key: notenix.features.zfs
+        id: zfs
+        const: ZFS
+        title: ZFS support
+        subtitle: "Enable ZFS kernel module for mounting ZFS pools"
+        default: false
 
-  - key: notenix.features.tailscale
-    id: tailscale
-    const: TAILSCALE
-    title: Tailscale
-    subtitle: "Tailscale VPN (adds status indicator to GNOME top bar)"
-    default: false
-    extra:
-      type: gnome_extension
-      value: tailscale-status
+      - key: notenix.features.tailscale
+        id: tailscale
+        const: TAILSCALE
+        title: Tailscale
+        subtitle: "Tailscale VPN (adds status indicator to GNOME top bar)"
+        default: false
+        extra:
+          type: gnome_extension
+          value: tailscale-status
 
-  - key: notenix.features.logitechWireless
-    id: logitechWireless
-    const: LOGITECH_WIRELESS
-    title: Logitech Wireless
-    subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
-    default: false
+      - key: notenix.features.logitechWireless
+        id: logitechWireless
+        const: LOGITECH_WIRELESS
+        title: Logitech Wireless
+        subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
+        default: false
+
+  - id: extensions
+    title: Extensions
+    description: "Enabled on next rebuild (only applies to GNOME desktop preset)"
+    type: list_option
+    nix_key: notenix.desktop.gnome.extensions
+    save_cmd: set-extensions
+    items:
+      - id: appindicator
+        title: AppIndicator
+        subtitle: "System tray icon support"
+        default: true
+
+      - id: dash-to-dock
+        title: Dash to Dock
+        subtitle: "Customisable dock panel"
+        default: true
+
+      - id: gsconnect
+        title: GSConnect
+        subtitle: "KDE Connect integration -- pair with Android"
+        default: true
+
+      - id: gtk4-desktop-icons-ng-ding
+        title: Desktop Icons NG
+        subtitle: "Show files and folders on the desktop"
+        default: false
+
+      - id: tailscale-status
+        title: Tailscale Status
+        subtitle: "Tailscale VPN status indicator in the top bar"
+        default: false
+
+  - id: apps
+    title: Apps
+    description: "Apps installed from Flathub on next rebuild"
+    type: list_option
+    nix_key: notenix.applications.flatpak.packages
+    save_cmd: set-apps
+    items:
+      - id: org.chromium.Chromium
+        title: Chromium
+        subtitle: "Web browser"
+        default: false
+
+      - id: org.signal.Signal
+        title: Signal
+        subtitle: "Encrypted messaging"
+        default: false
+
+      - id: org.nextcloud.Nextcloud
+        title: Nextcloud
+        subtitle: "Sync files and folders with Nextcloud"
+        default: false
+
+      - id: org.libreoffice.LibreOffice
+        title: LibreOffice
+        subtitle: "Full office suite -- Writer, Calc, Impress"
+        default: false
+
+      - id: com.vscodium.codium
+        title: VSCodium
+        subtitle: "Code editor"
+        default: false
+
+      - id: com.obsproject.Studio
+        title: OBS Studio
+        subtitle: "Screen recording and streaming"
+        default: false
+
+      - id: org.videolan.VLC
+        title: VLC
+        subtitle: "Media player"
+        default: false
+
+      - id: com.github.tchx84.Flatseal
+        title: Flatseal
+        subtitle: "Manage Flatpak permissions"
+        default: false
+
+      - id: com.rustdesk.RustDesk
+        title: RustDesk
+        subtitle: "Remote desktop"
+        default: false

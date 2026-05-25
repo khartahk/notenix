@@ -15,6 +15,7 @@ from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
     FEATURE_CATALOG,
+    TAB_CATALOG,
     FLATPAK_CATALOG,
     FLAKE_REPO,
     GNOME_EXTENSIONS_CATALOG,
@@ -40,6 +41,7 @@ from kanal.constants import (
     LOCAL_FLAKE_PATH,
     MACHINE_PATH,
     get_feature_catalog,
+    get_tab_catalog,
 )
 
 # Metadata
@@ -79,7 +81,7 @@ __all__ = [
     "KEY_FEATURE_KIOSK", "KEY_FEATURE_NVIDIA", "KEY_FEATURE_RUSTDESK", "KEY_FEATURE_SSH",
     "KEY_FEATURE_CANON_PRINTER", "KEY_FEATURE_ZFS", "KEY_FEATURE_TAILSCALE",
     "KEY_FEATURE_LOGITECH_WIRELESS",
-    "get_feature_catalog",
+    "get_feature_catalog", "get_tab_catalog", "TAB_CATALOG",
     "KEY_FLATPAK_PACKAGES", "KEY_GNOME_EXTENSIONS",
     "KEY_HOSTNAME", "KEY_KBLAYOUT", "KEY_LOCALE", "KEY_OP", "KEY_PRESET",
     "KEY_STATEVERSION", "KEY_TIMEZONE", "KEY_USERDESC", "KEY_USERNAME",

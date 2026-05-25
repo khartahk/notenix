@@ -19,7 +19,7 @@ import yaml
 LOCAL_FLAKE_PATH  = Path("/etc/nixos/flake.nix")
 MACHINE_PATH      = Path("/etc/nixos/machine.nix")
 LOCAL_FLAKE_ATTR  = "notenix"          # nixosConfigurations.<attr>
-FLAKE_REPO        = "path:/etc/nixos"   # autoupgrade always builds from local flake; branch is set via inputs.notenix.url in flake.nix
+FLAKE_REPO        = "path:/etc/nixos"   # autoupgrade always builds from local flake
 NIXOS_REBUILD_BIN = Path("/run/current-system/sw/bin/nixos-rebuild")
 NIX_BIN           = Path("/run/current-system/sw/bin/nix")
 
@@ -27,60 +27,60 @@ NIX_BIN           = Path("/run/current-system/sw/bin/nix")
 # NixOS option keys written to machine.nix
 # ---------------------------------------------------------------------------
 
-KEY_OP           = "notenix.system.autoupgrade.operation"
-KEY_FLAKEREPO    = "notenix.system.autoupgrade.flakeRepo"
-KEY_PRESET       = "notenix.preset"
+KEY_OP        = "notenix.system.autoupgrade.operation"
+KEY_FLAKEREPO = "notenix.system.autoupgrade.flakeRepo"
+KEY_PRESET    = "notenix.preset"
 
 # ---------------------------------------------------------------------------
-# Feature catalog — loaded from default.yaml bundled in the package.
-# Adds per-feature backward-compat constants: KEY_FEATURE_SSH, etc.
+# Tab catalog — loaded from default.yaml bundled in the package.
+# Drives all dynamic tabs (features, extensions, apps) in the GUI.
 # ---------------------------------------------------------------------------
 
-def _load_feature_catalog() -> list[dict]:
+def _load_catalog() -> dict:
     ref = importlib.resources.files("kanal").joinpath("default.yaml")
     with importlib.resources.as_file(ref) as p:
-        return yaml.safe_load(p.read_text())["features"]
+        return yaml.safe_load(p.read_text())
 
 
-FEATURE_CATALOG: list[dict] = _load_feature_catalog()
+_CATALOG: dict = _load_catalog()
+
+TAB_CATALOG: list[dict] = _CATALOG["tabs"]
+
+# Convenience lookup by tab id
+_TABS_BY_ID: dict[str, dict] = {t["id"]: t for t in TAB_CATALOG}
+
+FEATURE_CATALOG: list[dict] = _TABS_BY_ID["features"]["items"]
 
 ALL_FEATURES: list[str] = [f["key"] for f in FEATURE_CATALOG]
 
-# Backward-compat per-feature constants: KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, …
+# Backward-compat per-feature constants: KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, ...
 for _f in FEATURE_CATALOG:
     globals()[f"KEY_FEATURE_{_f['const']}"] = _f["key"]
 
+# Backward-compat catalog dicts (dict format expected by existing callers)
+GNOME_EXTENSIONS_CATALOG: dict[str, tuple[str, str]] = {
+    item["id"]: (item["title"], item["subtitle"])
+    for item in _TABS_BY_ID["extensions"]["items"]
+}
+
+FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
+    item["id"]: (item["title"], item["subtitle"])
+    for item in _TABS_BY_ID["apps"]["items"]
+}
+
+KEY_FLATPAK_PACKAGES: str = _TABS_BY_ID["apps"]["nix_key"]
+KEY_GNOME_EXTENSIONS: str = _TABS_BY_ID["extensions"]["nix_key"]
+
+
+def get_tab_catalog() -> list[dict]:
+    """Return the full ordered tab catalog from default.yaml."""
+    return TAB_CATALOG
+
 
 def get_feature_catalog() -> list[dict]:
-    """Return the feature catalog list loaded from default.yaml."""
+    """Return feature items (bool_options tab). Backward compat."""
     return FEATURE_CATALOG
 
-KEY_FLATPAK_PACKAGES  = "notenix.applications.flatpak.packages"
-KEY_GNOME_EXTENSIONS  = "notenix.desktop.gnome.extensions"
-
-# GNOME extensions shown as toggles in the GUI.
-# Format: { extension_id: (display_name, subtitle) }
-GNOME_EXTENSIONS_CATALOG: dict[str, tuple[str, str]] = {
-    "appindicator":                ("AppIndicator",     "System tray icon support"),
-    "dash-to-dock":                ("Dash to Dock",     "Customisable dock panel"),
-    "gsconnect":                   ("GSConnect",        "KDE Connect integration — pair with Android"),
-    "gtk4-desktop-icons-ng-ding":  ("Desktop Icons NG", "Show files and folders on the desktop"),
-    "tailscale-status":            ("Tailscale Status", "Tailscale VPN status indicator in the top bar"),
-}
-
-# Curated list of Flatpak apps shown as checkboxes in the GUI.
-# Format: { flatpak_id: (display_name, subtitle) }
-FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
-    "org.chromium.Chromium":          ("Chromium",        "Web browser"),
-    "org.signal.Signal":              ("Signal",          "Encrypted messaging"),
-    "org.nextcloud.Nextcloud":        ("Nextcloud",       "Sync files and folders with Nextcloud"),
-    "org.libreoffice.LibreOffice":    ("LibreOffice",     "Full office suite — Writer, Calc, Impress"),
-    "com.vscodium.codium":            ("VSCodium",        "Code editor"),
-    "com.obsproject.Studio":          ("OBS Studio",      "Screen recording and streaming"),
-    "org.videolan.VLC":               ("VLC",             "Media player"),
-    "com.github.tchx84.Flatseal":     ("Flatseal",        "Manage Flatpak permissions"),
-    "com.rustdesk.RustDesk":          ("RustDesk",        "Remote desktop"),
-}
 
 KEY_HOSTNAME     = "notenix.system.install.hostName"
 KEY_USERNAME     = "notenix.system.install.userName"

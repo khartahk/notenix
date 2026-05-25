@@ -22,8 +22,8 @@ class ChannelWindow(Adw.Window):
         self.set_title("kanal")
         self.set_default_size(700, 500)
 
-        meta   = backend.load_metadata()
-        status = backend.read_status()
+        meta    = backend.load_metadata()
+        status  = backend.read_status()
         machine = backend.read_machine()
 
         # ── Header bar ────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ class ChannelWindow(Adw.Window):
         reload_box.append(self._reload_btn)
         reload_box.append(self._cooldown_label)
 
-        # ── View stack (Channel / Machine pages) ──────────────────────────
+        # ── View stack ────────────────────────────────────────────────────
         self._stack = Gtk.Stack()
         self._stack.set_hexpand(True)
         self._stack.set_vexpand(True)
@@ -75,7 +75,7 @@ class ChannelWindow(Adw.Window):
         main_group.add(self._preset_row)
 
         self._update_preset_model(self._channel_ids[selected_ch], current_preset=status.preset)
-        self._current_preset = status.preset  # track active (installed) preset
+        self._current_preset = status.preset
         self._channel_row.connect("notify::selected", self._on_channel_changed)
         self._preset_row.connect("notify::selected", self._on_preset_changed)
 
@@ -133,14 +133,13 @@ class ChannelWindow(Adw.Window):
         self._timezone_row.set_text(machine.get(backend.KEY_TIMEZONE, ""))
         locale_group.add(self._timezone_row)
 
-        # ── Language (locale) searchable combo row ──────────────────────
-        locale_pairs        = backend.list_locales()   # [(code, label), ...]
+        locale_pairs        = backend.list_locales()
         self._locale_ids    = [p[0] for p in locale_pairs]
         self._locale_labels = [p[1] for p in locale_pairs]
         cur_locale          = machine.get(backend.KEY_LOCALE, "")
 
-        locale_model        = Gtk.StringList.new(self._locale_labels)
-        self._locale_drop   = Adw.ComboRow()
+        locale_model      = Gtk.StringList.new(self._locale_labels)
+        self._locale_drop = Adw.ComboRow()
         self._locale_drop.set_title("Language")
         self._locale_drop.set_model(locale_model)
         self._locale_drop.set_expression(
@@ -152,14 +151,13 @@ class ChannelWindow(Adw.Window):
         self._locale_drop.connect("notify::selected", self._on_locale_changed)
         locale_group.add(self._locale_drop)
 
-        # ── Keyboard layout searchable combo row ─────────────────────────
-        kbd_pairs         = backend.list_kbd_layouts()  # [(code, label), ...]
-        self._kbd_codes   = [p[0] for p in kbd_pairs]
-        self._kbd_labels  = [p[1] for p in kbd_pairs]
-        cur_kbd           = machine.get(backend.KEY_KBLAYOUT, "")
+        kbd_pairs        = backend.list_kbd_layouts()
+        self._kbd_codes  = [p[0] for p in kbd_pairs]
+        self._kbd_labels = [p[1] for p in kbd_pairs]
+        cur_kbd          = machine.get(backend.KEY_KBLAYOUT, "")
 
-        kbd_model         = Gtk.StringList.new(self._kbd_labels)
-        self._kbd_drop    = Adw.ComboRow()
+        kbd_model        = Gtk.StringList.new(self._kbd_labels)
+        self._kbd_drop   = Adw.ComboRow()
         self._kbd_drop.set_title("Keyboard layout")
         self._kbd_drop.set_model(kbd_model)
         self._kbd_drop.set_expression(
@@ -173,7 +171,6 @@ class ChannelWindow(Adw.Window):
         self._kbd_drop.connect("notify::selected", self._on_kbd_manually_changed)
         locale_group.add(self._kbd_drop)
 
-        # Seed keyboard from locale if not already set
         if not self._kbd_user_set:
             self._sync_kbd_from_locale(cur_locale)
 
@@ -192,85 +189,65 @@ class ChannelWindow(Adw.Window):
 
         self._stack.add_titled(machine_page, "machine", "Machine")
 
-        # ══ Features page ═════════════════════════════════════════════════
-        features_page = Adw.PreferencesPage()
-        features = backend.read_features()
+        # ══ Dynamic catalog tabs (features / extensions / apps) ═══════════
+        # All tabs defined in default.yaml are rendered generically here.
+        # _tab_rows: { tab_id: { item_key_or_id: SwitchRow } }
+        self._tab_rows: dict[str, dict[str, Adw.SwitchRow]] = {}
 
-        feat_group = Adw.PreferencesGroup()
-        feat_group.set_title("Optional features")
-        feat_group.set_description("These are applied on top of the selected preset")
-        features_page.add(feat_group)
+        features_state   = backend.read_features()
+        extensions_state = set(backend.read_extensions())
+        apps_state       = set(backend.read_apps())
 
-        self._feat_rows: dict[str, Adw.SwitchRow] = {}
-        for feat in backend.get_feature_catalog():
-            row = Adw.SwitchRow()
-            row.set_title(feat["title"])
-            row.set_subtitle(feat["subtitle"])
-            row.set_active(features.get(feat["key"], feat["default"]))
-            feat_group.add(row)
-            self._feat_rows[feat["key"]] = row
+        for tab in backend.get_tab_catalog():
+            tab_id = tab["id"]
+            page   = Adw.PreferencesPage()
+            group  = Adw.PreferencesGroup()
+            group.set_title(tab["title"])
+            group.set_description(tab["description"])
+            page.add(group)
 
-        self._stack.add_titled(features_page, "features", "Features")
+            rows: dict[str, Adw.SwitchRow] = {}
 
-        # ══ Extensions page ═══════════════════════════════════════════════════
-        extensions_page = Adw.PreferencesPage()
+            if tab["type"] == "bool_options":
+                for item in tab["items"]:
+                    row = Adw.SwitchRow()
+                    row.set_title(item["title"])
+                    row.set_subtitle(item["subtitle"])
+                    row.set_active(features_state.get(item["key"], item["default"]))
+                    group.add(row)
+                    rows[item["key"]] = row
 
-        ext_group = Adw.PreferencesGroup()
-        ext_group.set_title("GNOME extensions")
-        ext_group.set_description("Enabled on next rebuild (only applies to GNOME desktop preset)")
-        extensions_page.add(ext_group)
+            elif tab["type"] == "list_option":
+                if tab_id == "extensions":
+                    active_ids = extensions_state if extensions_state else {
+                        item["id"] for item in tab["items"] if item["default"]
+                    }
+                else:
+                    active_ids = apps_state
+                for item in tab["items"]:
+                    row = Adw.SwitchRow()
+                    row.set_title(item["title"])
+                    row.set_subtitle(item["subtitle"])
+                    row.set_active(item["id"] in active_ids)
+                    group.add(row)
+                    rows[item["id"]] = row
 
-        enabled_exts = set(backend.read_extensions())
-        self._ext_rows: dict[str, Adw.SwitchRow] = {}
-        for ext_id, (name, subtitle) in backend.GNOME_EXTENSIONS_CATALOG.items():
-            row = Adw.SwitchRow()
-            row.set_title(name)
-            row.set_subtitle(subtitle)
-            row.set_active(ext_id in enabled_exts if enabled_exts else ext_id in ("appindicator", "dash-to-dock", "gsconnect"))
-            ext_group.add(row)
-            self._ext_rows[ext_id] = row
+            self._tab_rows[tab_id] = rows
+            self._stack.add_titled(page, tab_id, tab["title"])
 
-        self._stack.add_titled(extensions_page, "extensions", "Extensions")
-
-        # ══ Apps page ══════════════════════════════════════════════════════
-        apps_page = Adw.PreferencesPage()
-
-        apps_group = Adw.PreferencesGroup()
-        apps_group.set_title("Flatpak applications")
-        apps_group.set_description("Apps installed from Flathub on next rebuild")
-        apps_page.add(apps_group)
-
-        installed_apps = set(backend.read_apps())
-        self._app_rows: dict[str, Adw.SwitchRow] = {}
-        for app_id, (name, subtitle) in backend.FLATPAK_CATALOG.items():
-            row = Adw.SwitchRow()
-            row.set_title(name)
-            row.set_subtitle(subtitle)
-            row.set_active(app_id in installed_apps)
-            apps_group.add(row)
-            self._app_rows[app_id] = row
-
-        self._stack.add_titled(apps_page, "apps", "Apps")
-
-        # ── Action bar ────────────────────────────────────────────────────
+        # ── Save buttons (one per dynamic tab + machine) ──────────────────
         self._save_btn = Gtk.Button(label="Save")
         self._save_btn.add_css_class("pill")
         self._save_btn.connect("clicked", self._on_save_clicked)
 
-        self._save_features_btn = Gtk.Button(label="Save")
-        self._save_features_btn.add_css_class("suggested-action")
-        self._save_features_btn.add_css_class("pill")
-        self._save_features_btn.connect("clicked", self._on_save_features_clicked)
-
-        self._save_apps_btn = Gtk.Button(label="Save")
-        self._save_apps_btn.add_css_class("suggested-action")
-        self._save_apps_btn.add_css_class("pill")
-        self._save_apps_btn.connect("clicked", self._on_save_apps_clicked)
-
-        self._save_extensions_btn = Gtk.Button(label="Save")
-        self._save_extensions_btn.add_css_class("suggested-action")
-        self._save_extensions_btn.add_css_class("pill")
-        self._save_extensions_btn.connect("clicked", self._on_save_extensions_clicked)
+        # Build one Save button per catalog tab, keyed by tab id
+        self._tab_save_btns: dict[str, Gtk.Button] = {}
+        for tab in backend.get_tab_catalog():
+            btn = Gtk.Button(label="Save")
+            btn.add_css_class("suggested-action")
+            btn.add_css_class("pill")
+            btn.connect("clicked", self._on_tab_save_clicked, tab["id"])
+            self._tab_save_btns[tab["id"]] = btn
 
         self._activate_btn = Gtk.Button(label="Save")
         self._activate_btn.add_css_class("suggested-action")
@@ -279,12 +256,11 @@ class ChannelWindow(Adw.Window):
 
         action_bar = Gtk.ActionBar()
         action_bar.pack_end(self._activate_btn)
-        action_bar.pack_end(self._save_features_btn)
-        action_bar.pack_end(self._save_extensions_btn)
-        action_bar.pack_end(self._save_apps_btn)
+        for btn in reversed(list(self._tab_save_btns.values())):
+            action_bar.pack_end(btn)
         action_bar.pack_end(self._save_btn)
 
-        # ── Layout — sidebar left, content right ─────────────────────────
+        # ── Layout ────────────────────────────────────────────────────────
         sidebar = Gtk.StackSidebar()
         sidebar.set_stack(self._stack)
         sidebar.set_size_request(160, -1)
@@ -302,7 +278,7 @@ class ChannelWindow(Adw.Window):
         content_box.append(sep)
         content_box.append(content_scroll)
 
-        # ── Log view (collapsible) ────────────────────────────────────────
+        # ── Log view ──────────────────────────────────────────────────────
         self._log_buf  = Gtk.TextBuffer()
         log_view       = Gtk.TextView(buffer=self._log_buf)
         log_view.set_editable(False)
@@ -347,7 +323,7 @@ class ChannelWindow(Adw.Window):
         self.set_content(self._toast_overlay)
 
         self._stack.connect("notify::visible-child", self._on_tab_changed)
-        self._on_tab_changed(self._stack, None)  # set initial button visibility
+        self._on_tab_changed(self._stack, None)
 
         if backend.is_cache_stale():
             self._start_refresh()
@@ -362,10 +338,9 @@ class ChannelWindow(Adw.Window):
     def _on_tab_changed(self, stack, _param) -> None:
         tab = stack.get_visible_child_name()
         self._activate_btn.set_visible(tab == "channel")
-        self._save_features_btn.set_visible(tab == "features")
-        self._save_extensions_btn.set_visible(tab == "extensions")
-        self._save_apps_btn.set_visible(tab == "apps")
         self._save_btn.set_visible(tab == "machine")
+        for tid, btn in self._tab_save_btns.items():
+            btn.set_visible(tab == tid)
 
     def _start_refresh(self) -> None:
         self._reload_btn.set_sensitive(False)
@@ -438,8 +413,6 @@ class ChannelWindow(Adw.Window):
         channel_id = self._channel_ids[idx] if idx < len(self._channel_ids) else self._channel_ids[0]
         self._update_preset_model(channel_id)
 
-    # Presets that switch the display manager — changing between these kills
-    # the current session if applied immediately.
     _DM_GROUP: dict[str, str] = {
         "desktop":      "gdm",
         "desktop-lite": "lightdm",
@@ -452,7 +425,6 @@ class ChannelWindow(Adw.Window):
         old_dm = self._DM_GROUP.get(self._current_preset or "", "")
         new_dm = self._DM_GROUP.get(new_preset or "", "")
         if old_dm and new_dm and old_dm != new_dm:
-            # Switching DMs with "Immediately" kills the session — force boot.
             self._op_reboot_btn.set_active(True)
             self._op_now_btn.set_sensitive(False)
             self._op_row.set_subtitle(
@@ -476,13 +448,12 @@ class ChannelWindow(Adw.Window):
         locale_idx = self._locale_drop.get_selected()
         kbd_idx    = self._kbd_drop.get_selected()
         return {
-            backend.KEY_HOSTNAME:  self._hostname_row.get_text(),
-            backend.KEY_USERNAME:  self._username_row.get_text(),
-            backend.KEY_USERDESC:  self._userdesc_row.get_text(),
-            backend.KEY_TIMEZONE:  self._timezone_row.get_text(),
-            backend.KEY_LOCALE:    self._locale_ids[locale_idx] if locale_idx < len(self._locale_ids) else "",
-            backend.KEY_KBLAYOUT:  self._kbd_codes[kbd_idx] if kbd_idx < len(self._kbd_codes) else "",
-            # KEY_STATEVERSION intentionally omitted — read-only
+            backend.KEY_HOSTNAME: self._hostname_row.get_text(),
+            backend.KEY_USERNAME: self._username_row.get_text(),
+            backend.KEY_USERDESC: self._userdesc_row.get_text(),
+            backend.KEY_TIMEZONE: self._timezone_row.get_text(),
+            backend.KEY_LOCALE:   self._locale_ids[locale_idx] if locale_idx < len(self._locale_ids) else "",
+            backend.KEY_KBLAYOUT: self._kbd_codes[kbd_idx] if kbd_idx < len(self._kbd_codes) else "",
         }
 
     def _on_locale_changed(self, drop, _param) -> None:
@@ -511,7 +482,6 @@ class ChannelWindow(Adw.Window):
     def _append_log(self, text: str) -> None:
         end = self._log_buf.get_end_iter()
         self._log_buf.insert(end, text)
-        # auto-scroll to bottom
         adj = self._log_scroll.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
@@ -536,23 +506,23 @@ class ChannelWindow(Adw.Window):
         self._set_busy(True, self._save_btn, "Saving...")
         threading.Thread(target=self._worker_save, args=(settings,), daemon=True).start()
 
-    def _on_save_features_clicked(self, _btn):
-        features = {
-            feat["key"]: self._feat_rows[feat["key"]].get_active()
-            for feat in backend.get_feature_catalog()
-        }
-        self._set_busy(True, self._save_features_btn, "Saving...")
-        threading.Thread(target=self._worker_save_features, args=(features,), daemon=True).start()
+    def _on_tab_save_clicked(self, _btn, tab_id: str):
+        rows = self._tab_rows[tab_id]
+        tab  = next(t for t in backend.get_tab_catalog() if t["id"] == tab_id)
+        btn  = self._tab_save_btns[tab_id]
+        self._set_busy(True, btn, "Saving...")
 
-    def _on_save_apps_clicked(self, _btn):
-        app_ids = [aid for aid, row in self._app_rows.items() if row.get_active()]
-        self._set_busy(True, self._save_apps_btn, "Saving...")
-        threading.Thread(target=self._worker_save_apps, args=(app_ids,), daemon=True).start()
+        if tab["type"] == "bool_options":
+            payload = {key: row.get_active() for key, row in rows.items()}
+            threading.Thread(target=self._worker_save_features, args=(payload, btn), daemon=True).start()
+        elif tab["type"] == "list_option":
+            ids = [item_id for item_id, row in rows.items() if row.get_active()]
+            if tab_id == "extensions":
+                threading.Thread(target=self._worker_save_extensions, args=(ids, btn), daemon=True).start()
+            else:
+                threading.Thread(target=self._worker_save_apps, args=(ids, btn), daemon=True).start()
 
-    def _on_save_extensions_clicked(self, _btn):
-        ext_ids = [eid for eid, row in self._ext_rows.items() if row.get_active()]
-        self._set_busy(True, self._save_extensions_btn, "Saving...")
-        threading.Thread(target=self._worker_save_extensions, args=(ext_ids,), daemon=True).start()
+    # ── Workers ───────────────────────────────────────────────────────────
 
     def _worker_activate(self, channel: str, op: str, preset: str, flake_url: str):
         dry = backend.DRY_RUN
@@ -578,9 +548,8 @@ class ChannelWindow(Adw.Window):
                 GLib.idle_add(self._done_activate, "Upgrade failed", f"kanalctl apply exited {rc}")
         except Exception as exc:  # noqa: BLE001
             import traceback
-            tb = traceback.format_exc()
-            print(f"[kanal] _worker_activate crashed: {tb}", file=sys.stderr, flush=True)
             GLib.idle_add(self._done_activate, "Upgrade failed", str(exc))
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
 
     def _worker_save(self, settings: dict[str, str]):
         dry = backend.DRY_RUN
@@ -599,26 +568,17 @@ class ChannelWindow(Adw.Window):
                     _, rc = item
                     break
                 GLib.idle_add(self._append_log, item)
+            msg = "[Dry run] Would save and apply machine settings" if dry else "Machine settings saved and applied"
             if rc == 0:
-                msg = "[Dry run] Would save and apply machine settings" if dry else "Machine settings saved and applied"
                 GLib.idle_add(self._done_save, msg, None)
             else:
                 GLib.idle_add(self._done_save, "Save failed", f"kanalctl set-machine exited {rc}")
         except Exception as exc:  # noqa: BLE001
             import traceback
-            tb = traceback.format_exc()
-            print(f"[kanal] _worker_save crashed: {tb}", file=sys.stderr, flush=True)
             GLib.idle_add(self._done_save, "Save failed", str(exc))
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
 
-    def _done_activate(self, message: str, error: str | None = None):
-        self._set_busy(False, self._activate_btn, "Save")
-        self._show_result(message, error)
-
-    def _done_save(self, message: str, error: str | None = None):
-        self._set_busy(False, self._save_btn, "Save")
-        self._show_result(message, error)
-
-    def _worker_save_features(self, features: dict):
+    def _worker_save_features(self, features: dict, btn: Gtk.Button):
         dry = backend.DRY_RUN
         GLib.idle_add(self._log_buf.set_text, "")
         GLib.idle_add(self._show_more_btn.set_visible, True)
@@ -635,22 +595,17 @@ class ChannelWindow(Adw.Window):
                     _, rc = item
                     break
                 GLib.idle_add(self._append_log, item)
+            msg = "[Dry run] Would save features" if dry else "Features saved and applied"
             if rc == 0:
-                msg = "[Dry run] Would save features" if dry else "Features saved and applied"
-                GLib.idle_add(self._done_save_features, msg, None)
+                GLib.idle_add(self._done_tab_save, msg, None, btn)
             else:
-                GLib.idle_add(self._done_save_features, "Save failed", f"kanalctl set-features exited {rc}")
+                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-features exited {rc}", btn)
         except Exception as exc:  # noqa: BLE001
             import traceback
-            tb = traceback.format_exc()
-            print(f"[kanal] _worker_save_features crashed: {tb}", file=sys.stderr, flush=True)
-            GLib.idle_add(self._done_save_features, "Save failed", str(exc))
+            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
 
-    def _done_save_features(self, message: str, error: str | None = None):
-        self._set_busy(False, self._save_features_btn, "Save")
-        self._show_result(message, error)
-
-    def _worker_save_apps(self, app_ids: list[str]):
+    def _worker_save_apps(self, app_ids: list[str], btn: Gtk.Button):
         dry = backend.DRY_RUN
         GLib.idle_add(self._log_buf.set_text, "")
         GLib.idle_add(self._show_more_btn.set_visible, True)
@@ -667,22 +622,17 @@ class ChannelWindow(Adw.Window):
                     _, rc = item
                     break
                 GLib.idle_add(self._append_log, item)
+            msg = "[Dry run] Would save apps" if dry else "App list saved and applied"
             if rc == 0:
-                msg = "[Dry run] Would save apps" if dry else "App list saved and applied"
-                GLib.idle_add(self._done_save_apps, msg, None)
+                GLib.idle_add(self._done_tab_save, msg, None, btn)
             else:
-                GLib.idle_add(self._done_save_apps, "Save failed", f"kanalctl set-apps exited {rc}")
+                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-apps exited {rc}", btn)
         except Exception as exc:  # noqa: BLE001
             import traceback
-            tb = traceback.format_exc()
-            print(f"[kanal] _worker_save_apps crashed: {tb}", file=sys.stderr, flush=True)
-            GLib.idle_add(self._done_save_apps, "Save failed", str(exc))
+            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
 
-    def _done_save_apps(self, message: str, error: str | None = None):
-        self._set_busy(False, self._save_apps_btn, "Save")
-        self._show_result(message, error)
-
-    def _worker_save_extensions(self, ext_ids: list[str]):
+    def _worker_save_extensions(self, ext_ids: list[str], btn: Gtk.Button):
         dry = backend.DRY_RUN
         GLib.idle_add(self._log_buf.set_text, "")
         GLib.idle_add(self._show_more_btn.set_visible, True)
@@ -699,19 +649,26 @@ class ChannelWindow(Adw.Window):
                     _, rc = item
                     break
                 GLib.idle_add(self._append_log, item)
+            msg = "[Dry run] Would save extensions" if dry else "Extensions saved and applied"
             if rc == 0:
-                msg = "[Dry run] Would save extensions" if dry else "Extensions saved and applied"
-                GLib.idle_add(self._done_save_extensions, msg, None)
+                GLib.idle_add(self._done_tab_save, msg, None, btn)
             else:
-                GLib.idle_add(self._done_save_extensions, "Save failed", f"kanalctl set-extensions exited {rc}")
+                GLib.idle_add(self._done_tab_save, "Save failed", f"kanalctl set-extensions exited {rc}", btn)
         except Exception as exc:  # noqa: BLE001
             import traceback
-            tb = traceback.format_exc()
-            print(f"[kanal] _worker_save_extensions crashed: {tb}", file=sys.stderr, flush=True)
-            GLib.idle_add(self._done_save_extensions, "Save failed", str(exc))
+            GLib.idle_add(self._done_tab_save, "Save failed", str(exc), btn)
+            print(traceback.format_exc(), file=sys.stderr, flush=True)
 
-    def _done_save_extensions(self, message: str, error: str | None = None):
-        self._set_busy(False, self._save_extensions_btn, "Save")
+    def _done_activate(self, message: str, error: str | None = None):
+        self._set_busy(False, self._activate_btn, "Save")
+        self._show_result(message, error)
+
+    def _done_save(self, message: str, error: str | None = None):
+        self._set_busy(False, self._save_btn, "Save")
+        self._show_result(message, error)
+
+    def _done_tab_save(self, message: str, error: str | None, btn: Gtk.Button):
+        self._set_busy(False, btn, "Save")
         self._show_result(message, error)
 
     def _show_result(self, message: str, error: str | None = None):
