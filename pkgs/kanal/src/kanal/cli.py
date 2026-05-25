@@ -134,15 +134,17 @@ def _make_tab_handler(tab: dict):
 
 def _cmd_save_all(args: argparse.Namespace) -> int:
     """Save features, apps, extensions, and machine settings in one root call."""
-    features = json.loads(args.features_json) if args.features_json else {}
-    app_ids  = args.apps       if args.apps       is not None else []
-    ext_ids  = args.extensions if args.extensions is not None else []
+    tab_args = {
+        "set-features":  json.loads(args.features_json) if args.features_json else {},
+        "set-apps":      args.apps       if args.apps       is not None else [],
+        "set-extensions": args.extensions if args.extensions is not None else [],
+    }
     settings = _collect_machine(args)
     try:
-        if features:  backend.save_features(features)
-        backend.save_apps(app_ids)
-        backend.save_extensions(ext_ids)
-        if settings: backend.save_machine(settings)
+        for save_cmd, data in tab_args.items():
+            _TAB_SAVE_FN[save_cmd](data)
+        if settings:
+            backend.save_machine(settings)
     except OSError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

@@ -11,20 +11,13 @@ All symbols are re-exported from their canonical homes so that existing callers
 from __future__ import annotations
 
 # Constants
+import kanal.constants as _const
 from kanal.constants import (
     ALL_FEATURES,
     DRY_RUN,
     FEATURE_CATALOG,
     TAB_CATALOG,
     FLAKE_REPO,
-    KEY_FEATURE_KIOSK,
-    KEY_FEATURE_NVIDIA,
-    KEY_FEATURE_RUSTDESK,
-    KEY_FEATURE_SSH,
-    KEY_FEATURE_CANON_PRINTER,
-    KEY_FEATURE_ZFS,
-    KEY_FEATURE_TAILSCALE,
-    KEY_FEATURE_LOGITECH_WIRELESS,
     KEY_FLATPAK_PACKAGES,
     KEY_GNOME_EXTENSIONS,
     KEY_HOSTNAME,
@@ -43,6 +36,10 @@ from kanal.constants import (
     get_feature_catalog,
     get_tab_catalog,
 )
+
+# Re-export all KEY_FEATURE_* symbols generated in constants
+for _f in FEATURE_CATALOG:
+    globals()[f"KEY_FEATURE_{_f['const']}"] = getattr(_const, f"KEY_FEATURE_{_f['const']}")
 
 # Metadata
 from kanal.metadata import (
@@ -70,9 +67,7 @@ from kanal.privileged import (
 __all__ = [
     # constants — catalog (YAML-derived)
     "ALL_FEATURES", "DRY_RUN", "FEATURE_CATALOG", "FLAKE_REPO", "TAB_CATALOG",
-    "KEY_FEATURE_KIOSK", "KEY_FEATURE_NVIDIA", "KEY_FEATURE_RUSTDESK", "KEY_FEATURE_SSH",
-    "KEY_FEATURE_CANON_PRINTER", "KEY_FEATURE_ZFS", "KEY_FEATURE_TAILSCALE",
-    "KEY_FEATURE_LOGITECH_WIRELESS",
+    *[f"KEY_FEATURE_{f['const']}" for f in FEATURE_CATALOG],
     "get_feature_catalog", "get_tab_catalog",
     "KEY_FLATPAK_PACKAGES", "KEY_GNOME_EXTENSIONS",
     # constants — machine keys (YAML-derived)

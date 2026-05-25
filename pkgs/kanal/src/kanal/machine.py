@@ -29,12 +29,49 @@ from kanal.constants import (
     KEY_TIMEZONE,
     KEY_USERDESC,
     KEY_USERNAME,
+    MACHINE_FIELDS,
     MACHINE_KEY_FLAGS,
     MACHINE_PATH,
 )
 from kanal.nixfiles import _get_value, _get_list, _remove_key, _upsert_bool, _upsert_list, _upsert_value
 
 _DEFAULT_MACHINE = "{ lib, ... }:\n{\n}\n"
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _load_machine() -> str:
+    """Return current machine.nix contents, or the default skeleton."""
+    return MACHINE_PATH.read_text() if MACHINE_PATH.exists() else _DEFAULT_MACHINE
+
+
+def _write_machine(contents: str, label: str) -> None:
+    """Dry-run guard + write machine.nix atomically."""
+    if DRY_RUN:
+        print(f"[kanal dry-run] would write {label} to {MACHINE_PATH}:\n{contents}", flush=True)
+        return
+    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    MACHINE_PATH.write_text(contents)
+
+
+def _read_list_key(key: str) -> list[str]:
+    """Return a list value from machine.nix, or [] if absent."""
+    if MACHINE_PATH.exists():
+        result = _get_list(MACHINE_PATH.read_text(), key)
+        if result is not None:
+            return result
+    return []
+
+
+def _save_list_key(key: str, ids: list[str], label: str) -> None:
+    """Write a list value to machine.nix (or remove key if ids is empty)."""
+    contents = _load_machine()
+    if ids:
+        contents = _upsert_list(contents, key, ids)
+    else:
+        contents = _remove_key(contents, key)
+    _write_machine(contents, label)
 
 # ---------------------------------------------------------------------------
 # Live-system fallbacks (used when machine.nix fields are empty)
@@ -96,10 +133,7 @@ def read_machine() -> dict[str, str]:
 
     Any field absent from the file is filled in from the live system.
     """
-    keys = [
-        KEY_HOSTNAME, KEY_USERNAME, KEY_USERDESC,
-        KEY_TIMEZONE, KEY_LOCALE, KEY_KBLAYOUT, KEY_STATEVERSION,
-    ]
+    keys = [mf["nix_key"] for mf in MACHINE_FIELDS]
     result: dict[str, str] = {k: "" for k in keys}
 
     if MACHINE_PATH.exists():
@@ -121,20 +155,11 @@ def save_machine(settings: dict[str, str]) -> None:
 
     Keys absent from *settings* are left unchanged in the file.
     """
-    if MACHINE_PATH.exists():
-        contents = MACHINE_PATH.read_text()
-    else:
-        contents = _DEFAULT_MACHINE
+    contents = _load_machine()
     for key, value in settings.items():
         if value:
             contents = _upsert_value(contents, key, value)
-
-    if DRY_RUN:
-        print(f"[kanal dry-run] would write to {MACHINE_PATH}:\n{contents}", flush=True)
-        return
-
-    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MACHINE_PATH.write_text(contents)
+    _write_machine(contents, "machine settings")
 
 
 def read_features() -> dict[str, bool]:
@@ -150,10 +175,7 @@ def read_features() -> dict[str, bool]:
 
 def save_features(features: dict[str, bool]) -> None:
     """Write feature flags to machine.nix (must be called as root)."""
-    if MACHINE_PATH.exists():
-        contents = MACHINE_PATH.read_text()
-    else:
-        contents = _DEFAULT_MACHINE
+    contents = _load_machine()
     for key, enabled in features.items():
         if enabled:
             contents = _upsert_bool(contents, key, True)
@@ -174,72 +196,26 @@ def save_features(features: dict[str, bool]) -> None:
                 contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, exts)
             elif not enabled and ext_id in exts:
                 exts = [e for e in exts if e != ext_id]
-                if exts:
-                    contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, exts)
-                else:
-                    contents = _remove_key(contents, KEY_GNOME_EXTENSIONS)
-
-    if DRY_RUN:
-        print(f"[kanal dry-run] would write features to {MACHINE_PATH}:\n{contents}", flush=True)
-        return
-
-    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MACHINE_PATH.write_text(contents)
+                contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, exts) if exts \
+                    else _remove_key(contents, KEY_GNOME_EXTENSIONS)
+    _write_machine(contents, "features")
 
 
 def read_apps() -> list[str]:
     """Return the list of Flatpak app IDs from machine.nix (no root required)."""
-    if MACHINE_PATH.exists():
-        result = _get_list(MACHINE_PATH.read_text(), KEY_FLATPAK_PACKAGES)
-        if result is not None:
-            return result
-    return []
+    return _read_list_key(KEY_FLATPAK_PACKAGES)
 
 
 def save_apps(app_ids: list[str]) -> None:
     """Write Flatpak package list to machine.nix (must be called as root)."""
-    if MACHINE_PATH.exists():
-        contents = MACHINE_PATH.read_text()
-    else:
-        contents = _DEFAULT_MACHINE
-
-    if app_ids:
-        contents = _upsert_list(contents, KEY_FLATPAK_PACKAGES, app_ids)
-    else:
-        contents = _remove_key(contents, KEY_FLATPAK_PACKAGES)
-
-    if DRY_RUN:
-        print(f"[kanal dry-run] would write apps to {MACHINE_PATH}:\n{contents}", flush=True)
-        return
-
-    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MACHINE_PATH.write_text(contents)
+    _save_list_key(KEY_FLATPAK_PACKAGES, app_ids, "apps")
 
 
 def read_extensions() -> list[str]:
     """Return the list of enabled GNOME extension IDs from machine.nix (no root required)."""
-    if MACHINE_PATH.exists():
-        result = _get_list(MACHINE_PATH.read_text(), KEY_GNOME_EXTENSIONS)
-        if result is not None:
-            return result
-    return []
+    return _read_list_key(KEY_GNOME_EXTENSIONS)
 
 
 def save_extensions(ext_ids: list[str]) -> None:
     """Write GNOME extensions list to machine.nix (must be called as root)."""
-    if MACHINE_PATH.exists():
-        contents = MACHINE_PATH.read_text()
-    else:
-        contents = _DEFAULT_MACHINE
-
-    if ext_ids:
-        contents = _upsert_list(contents, KEY_GNOME_EXTENSIONS, ext_ids)
-    else:
-        contents = _remove_key(contents, KEY_GNOME_EXTENSIONS)
-
-    if DRY_RUN:
-        print(f"[kanal dry-run] would write extensions to {MACHINE_PATH}:\n{contents}", flush=True)
-        return
-
-    MACHINE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    MACHINE_PATH.write_text(contents)
+    _save_list_key(KEY_GNOME_EXTENSIONS, ext_ids, "extensions")

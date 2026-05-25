@@ -532,33 +532,28 @@ class ChannelWindow(Adw.Window):
     def _on_reload_clicked(self, _btn):
         self._start_refresh()
 
-    def _on_apply_clicked(self, _btn):
-        payload = self._collect_all_payload()
-        self._set_busy(True, self._apply_btn, "Applying\u2026")
-        done_cb = lambda msg, err: self._done_action(msg, err, self._apply_btn, "Apply")  # noqa: E731
+    def _dispatch_save(self, btn, label: str, rebuild: bool) -> None:
+        payload    = self._collect_all_payload()
+        busy_label = "Applying\u2026" if rebuild else "Saving\u2026"
+        success    = "All changes saved and applied" if rebuild else "All changes saved"
+        dry_msg    = (
+            f"[Dry run] Would save all & apply: {payload['channel']}, {payload['operation']}, {payload['preset']}"
+            if rebuild else "[Dry run] Would save all settings"
+        )
+        self._set_busy(True, btn, busy_label)
+        done_cb = lambda msg, err: self._done_action(msg, err, btn, label)  # noqa: E731
         threading.Thread(
             target=self._run_stream_worker,
-            args=(lambda: backend.pkexec_save_all_stream(payload, rebuild=True),
-                  "All changes saved and applied",
-                  f"[Dry run] Would save all & apply: {payload['channel']}, {payload['operation']}, {payload['preset']}",
-                  "kanalctl save-all",
-                  done_cb),
+            args=(lambda: backend.pkexec_save_all_stream(payload, rebuild=rebuild),
+                  success, dry_msg, "kanalctl save-all", done_cb),
             daemon=True,
         ).start()
 
+    def _on_apply_clicked(self, _btn):
+        self._dispatch_save(self._apply_btn, "Apply", rebuild=True)
+
     def _on_save_all_clicked(self, _btn):
-        payload = self._collect_all_payload()
-        self._set_busy(True, self._save_btn, "Saving\u2026")
-        done_cb = lambda msg, err: self._done_action(msg, err, self._save_btn, "Save")  # noqa: E731
-        threading.Thread(
-            target=self._run_stream_worker,
-            args=(lambda: backend.pkexec_save_all_stream(payload, rebuild=False),
-                  "All changes saved",
-                  "[Dry run] Would save all settings",
-                  "kanalctl save-all",
-                  done_cb),
-            daemon=True,
-        ).start()
+        self._dispatch_save(self._save_btn, "Save", rebuild=False)
 
     # ── Result callbacks ──────────────────────────────────────────────────
 
