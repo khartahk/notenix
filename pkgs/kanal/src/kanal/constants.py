@@ -53,23 +53,23 @@ FEATURE_CATALOG: list[dict] = _TABS_BY_ID["features"]["items"]
 
 ALL_FEATURES: list[str] = [f["key"] for f in FEATURE_CATALOG]
 
-# Backward-compat per-feature constants: KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, ...
+# Per-feature constants: KEY_FEATURE_SSH, KEY_FEATURE_KIOSK, …
 for _f in FEATURE_CATALOG:
     globals()[f"KEY_FEATURE_{_f['const']}"] = _f["key"]
 
-# Backward-compat catalog dicts (dict format expected by existing callers)
-GNOME_EXTENSIONS_CATALOG: dict[str, tuple[str, str]] = {
-    item["id"]: (item["title"], item["subtitle"])
-    for item in _TABS_BY_ID["extensions"]["items"]
-}
-
-FLATPAK_CATALOG: dict[str, tuple[str, str]] = {
-    item["id"]: (item["title"], item["subtitle"])
-    for item in _TABS_BY_ID["apps"]["items"]
-}
-
+# list_option nix keys — derived from YAML nix_key fields
 KEY_FLATPAK_PACKAGES: str = _TABS_BY_ID["apps"]["nix_key"]
 KEY_GNOME_EXTENSIONS: str = _TABS_BY_ID["extensions"]["nix_key"]
+
+# Machine identity fields — loaded from default.yaml machine.fields
+_MACHINE_FIELDS: list[dict] = _CATALOG["machine"]["fields"]
+
+# Generate KEY_HOSTNAME, KEY_USERNAME, … from YAML
+for _mf in _MACHINE_FIELDS:
+    globals()[f"KEY_{_mf['id'].upper()}"] = _mf["nix_key"]
+
+# Convenience: {nix_key: cli_flag} mapping used by privileged.py / cli.py
+MACHINE_KEY_FLAGS: dict[str, str] = {f["nix_key"]: f["cli_flag"] for f in _MACHINE_FIELDS}
 
 
 def get_tab_catalog() -> list[dict]:
@@ -80,15 +80,6 @@ def get_tab_catalog() -> list[dict]:
 def get_feature_catalog() -> list[dict]:
     """Return feature items (bool_options tab). Backward compat."""
     return FEATURE_CATALOG
-
-
-KEY_HOSTNAME     = "notenix.system.install.hostName"
-KEY_USERNAME     = "notenix.system.install.userName"
-KEY_USERDESC     = "notenix.system.install.userDescription"
-KEY_TIMEZONE     = "notenix.system.install.timeZone"
-KEY_LOCALE       = "notenix.system.install.locale"
-KEY_KBLAYOUT     = "notenix.system.install.keyboardLayout"
-KEY_STATEVERSION = "system.stateVersion"
 
 # ---------------------------------------------------------------------------
 # Runtime flags (injected by the Nix build via makeWrapper)

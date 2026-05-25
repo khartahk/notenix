@@ -16,16 +16,10 @@ import subprocess
 
 from kanal.constants import (
     DRY_RUN,
-    KEY_HOSTNAME,
-    KEY_KBLAYOUT,
-    KEY_LOCALE,
-    KEY_STATEVERSION,
-    KEY_TIMEZONE,
-    KEY_USERDESC,
-    KEY_USERNAME,
     KANALCTL_BIN,
     LOCAL_FLAKE_ATTR,
     LOCAL_FLAKE_PATH,
+    MACHINE_KEY_FLAGS,
     NIX_BIN,
     NIXOS_REBUILD_BIN,
 )
@@ -51,16 +45,8 @@ def _pkexec_stream(cmd: list[str], dry_msg: str):
     yield None, proc.returncode
 
 
-# Mapping from machine.nix key to kanalctl --flag
-_MACHINE_FLAGS: dict[str, str] = {
-    KEY_HOSTNAME:     "--hostname",
-    KEY_USERNAME:     "--username",
-    KEY_USERDESC:     "--userdesc",
-    KEY_TIMEZONE:     "--timezone",
-    KEY_LOCALE:       "--locale",
-    KEY_KBLAYOUT:     "--kblayout",
-    KEY_STATEVERSION: "--stateversion",
-}
+# {nix_key: cli_flag} — loaded from default.yaml, no hardcoding needed
+_MACHINE_FLAGS = MACHINE_KEY_FLAGS
 
 # ---------------------------------------------------------------------------
 # Direct rebuild (already root — called from kanalctl apply / save-all)

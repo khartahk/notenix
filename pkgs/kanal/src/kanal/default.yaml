@@ -19,6 +19,32 @@
 # extra (bool_options only):
 #   type: gnome_extension  -> value synced into notenix.desktop.gnome.extensions
 
+# Machine identity fields written to machine.nix.
+# Each entry: id (Python constant suffix), nix_key, cli_flag
+machine:
+  fields:
+    - id: hostname
+      nix_key: notenix.system.install.hostName
+      cli_flag: --hostname
+    - id: username
+      nix_key: notenix.system.install.userName
+      cli_flag: --username
+    - id: userdesc
+      nix_key: notenix.system.install.userDescription
+      cli_flag: --userdesc
+    - id: timezone
+      nix_key: notenix.system.install.timeZone
+      cli_flag: --timezone
+    - id: locale
+      nix_key: notenix.system.install.locale
+      cli_flag: --locale
+    - id: kblayout
+      nix_key: notenix.system.install.keyboardLayout
+      cli_flag: --kblayout
+    - id: stateversion
+      nix_key: system.stateVersion
+      cli_flag: --stateversion
+
 tabs:
   - id: features
     title: Features

@@ -16,9 +16,7 @@ from kanal.constants import (
     DRY_RUN,
     FEATURE_CATALOG,
     TAB_CATALOG,
-    FLATPAK_CATALOG,
     FLAKE_REPO,
-    GNOME_EXTENSIONS_CATALOG,
     KEY_FEATURE_KIOSK,
     KEY_FEATURE_NVIDIA,
     KEY_FEATURE_RUSTDESK,
@@ -39,6 +37,7 @@ from kanal.constants import (
     KEY_USERDESC,
     KEY_USERNAME,
     LOCAL_FLAKE_PATH,
+    MACHINE_KEY_FLAGS,
     MACHINE_PATH,
     get_feature_catalog,
     get_tab_catalog,
@@ -68,17 +67,17 @@ from kanal.privileged import (
 )
 
 __all__ = [
-    # constants
-    "ALL_FEATURES", "DRY_RUN", "FEATURE_CATALOG", "FLATPAK_CATALOG", "FLAKE_REPO",
-    "GNOME_EXTENSIONS_CATALOG",
+    # constants — catalog (YAML-derived)
+    "ALL_FEATURES", "DRY_RUN", "FEATURE_CATALOG", "FLAKE_REPO", "TAB_CATALOG",
     "KEY_FEATURE_KIOSK", "KEY_FEATURE_NVIDIA", "KEY_FEATURE_RUSTDESK", "KEY_FEATURE_SSH",
     "KEY_FEATURE_CANON_PRINTER", "KEY_FEATURE_ZFS", "KEY_FEATURE_TAILSCALE",
     "KEY_FEATURE_LOGITECH_WIRELESS",
-    "get_feature_catalog", "get_tab_catalog", "TAB_CATALOG",
+    "get_feature_catalog", "get_tab_catalog",
     "KEY_FLATPAK_PACKAGES", "KEY_GNOME_EXTENSIONS",
+    # constants — machine keys (YAML-derived)
     "KEY_HOSTNAME", "KEY_KBLAYOUT", "KEY_LOCALE", "KEY_OP", "KEY_PRESET",
     "KEY_STATEVERSION", "KEY_TIMEZONE", "KEY_USERDESC", "KEY_USERNAME",
-    "LOCAL_FLAKE_PATH", "MACHINE_PATH",
+    "LOCAL_FLAKE_PATH", "MACHINE_KEY_FLAGS", "MACHINE_PATH",
     # metadata
     "Status", "is_cache_stale", "load_metadata", "refresh_metadata",
     # nixfiles
