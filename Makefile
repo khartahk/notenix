@@ -14,23 +14,35 @@ CZ = cd pkgs/kanal && cz
 # Auto-detect bump level from conventional commits since last tag, then
 # tag + push. This is the standard release flow.
 release:
-	$(CZ) bump --changelog
+	$(CZ) bump
+	$(CZ) changelog
+	git add CHANGELOG.md
+	git commit --amend --no-edit
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 # Manual overrides when you want to force a specific bump level.
 bump-patch:
-	$(CZ) bump --increment PATCH --changelog
+	$(CZ) bump --increment PATCH
+	$(CZ) changelog
+	git add CHANGELOG.md
+	git commit --amend --no-edit
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-minor:
-	$(CZ) bump --increment MINOR --changelog
+	$(CZ) bump --increment MINOR
+	$(CZ) changelog
+	git add CHANGELOG.md
+	git commit --amend --no-edit
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-major:
-	$(CZ) bump --increment MAJOR --changelog
+	$(CZ) bump --increment MAJOR
+	$(CZ) changelog
+	git add CHANGELOG.md
+	git commit --amend --no-edit
 	git push --follow-tags
 	$(MAKE) _gh-release
 
