@@ -7,7 +7,7 @@
 #   make release      # auto-detect bump from commits, tag, push
 #   make install-hooks  # install pre-commit hooks into .git/
 
-CZ = cz --config pkgs/kanal/pyproject.toml
+CZ = cd pkgs/kanal && cz
 
 .PHONY: bump-patch bump-minor bump-major release changelog install-hooks _gh-release
 

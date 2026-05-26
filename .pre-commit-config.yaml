@@ -1,0 +1,17 @@
+repos:
+  # Validate that commit messages follow Conventional Commits format.
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.8.3
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+  # Regenerate CHANGELOG.md from conventional commits and stage it.
+  - repo: local
+    hooks:
+      - id: changelog
+        name: update changelog
+        language: system
+        entry: bash -c 'cd pkgs/kanal && cz changelog && git add ../../CHANGELOG.md'
+        stages: [pre-commit]
+        pass_filenames: false

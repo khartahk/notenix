@@ -1,6 +1,7 @@
 .*
 !.envrc
 !.gitignore
+!.pre-commit-config.yaml
 *.qcow2
 /result*
 __pycache__/

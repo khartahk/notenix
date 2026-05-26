@@ -32,6 +32,7 @@
 
 ### Fix
 
+- **dev**: pass --repo to gh release create since origin is Gitea
 - **dev**: remove --quiet flag unsupported by this pre-commit version
 - **gnome**: remove postPatch shell-version hack; add build-time compat warning
 - **gnome**: patch upstream-main ding metadata.json to include GNOME 49 shell-version
