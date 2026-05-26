@@ -23,6 +23,8 @@ FLAKE_REPO        = "path:/etc/nixos"   # autoupgrade always builds from local f
 NIXOS_REBUILD_BIN = Path("/run/current-system/sw/bin/nixos-rebuild")
 NIX_BIN           = Path("/run/current-system/sw/bin/nix")
 
+RELEASES_CACHE    = Path("~/.cache/kanal/releases.json").expanduser()
+
 # ---------------------------------------------------------------------------
 # NixOS option keys written to machine.nix
 # ---------------------------------------------------------------------------

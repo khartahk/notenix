@@ -7,6 +7,7 @@ name    = "kanal"
 version = "0.1.0"
 description = "notenix update-channel switcher — GUI and CLI"
 requires-python = ">=3.11"
+dependencies    = ["packaging"]
 
 [project.scripts]
 kanal    = "kanal.__main__:main"
@@ -21,3 +22,10 @@ kanal = ["*.yaml", "icons/hicolor/scalable/actions/*.svg"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.commitizen]
+version_provider         = "pep621"    # reads/writes [project].version
+tag_format               = "v$version"
+update_changelog_on_bump = true
+major_version_zero       = true        # 0.x.y: breaking changes bump minor not major
+changelog_file           = "CHANGELOG.md"

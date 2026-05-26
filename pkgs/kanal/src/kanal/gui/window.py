@@ -15,6 +15,7 @@ from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 
 from kanal import _
 from kanal import backend
+from kanal import releases as _releases
 
 
 class ChannelWindow(Adw.Window):
@@ -335,13 +336,25 @@ class ChannelWindow(Adw.Window):
 
         self._toast_overlay = Adw.ToastOverlay()
         self._toast_overlay.set_child(toolbar_view)
-        self.set_content(self._toast_overlay)
+
+        # ── Release banner (hidden until an update is found) ───────────────
+        self._release_banner = Adw.Banner()
+        self._release_banner.set_revealed(False)
+        self._release_banner.set_button_label(_("What's new"))
+        self._release_banner.connect("button-clicked", self._on_release_banner_clicked)
+        self._release_newer: list[dict] = []
+
+        outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        outer_box.append(self._release_banner)
+        outer_box.append(self._toast_overlay)
+        self.set_content(outer_box)
 
         self._initial_payload = self._collect_all_payload()
         self._connect_change_signals()
 
         if backend.is_cache_stale():
             self._start_refresh()
+        self._start_release_check()
 
     # ── Helpers ───────────────────────────────────────────────────────────
 
@@ -394,6 +407,7 @@ class ChannelWindow(Adw.Window):
             kwargs={"callback": lambda data: GLib.idle_add(self._on_metadata_refreshed, data)},
             daemon=True,
         ).start()
+        self._start_release_check()
 
     def _on_metadata_refreshed(self, new_meta: dict, *, error: bool = False) -> None:
         img = Gtk.Image.new_from_icon_name("update-symbolic")
@@ -696,6 +710,64 @@ class ChannelWindow(Adw.Window):
 
     def _on_save_all_clicked(self, _btn):
         self._dispatch_save(self._save_btn, _("Save"), rebuild=False)
+
+    # ── Release notification ──────────────────────────────────────────────
+
+    def _start_release_check(self) -> None:
+        """Fetch newer releases in the background; update banner when done."""
+        threading.Thread(
+            target=lambda: GLib.idle_add(
+                self._on_release_checked, _releases.check_update()
+            ),
+            daemon=True,
+        ).start()
+
+    def _on_release_checked(self, newer: list[dict] | None) -> None:
+        if not newer:
+            self._release_banner.set_revealed(False)
+            return GLib.SOURCE_REMOVE
+        self._release_newer = newer
+        latest = newer[0]["tag_name"]
+        self._release_banner.set_title(_(f"Update available: {latest}"))
+        self._release_banner.set_revealed(True)
+        return GLib.SOURCE_REMOVE
+
+    def _on_release_banner_clicked(self, _banner) -> None:
+        """Show What's New dialog with all pending release notes."""
+        dialog = Adw.Dialog()
+        dialog.set_title(_("What's New"))
+        dialog.set_content_width(560)
+        dialog.set_content_height(480)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+
+        notes_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        notes_box.set_margin_top(12)
+        notes_box.set_margin_bottom(12)
+        notes_box.set_margin_start(18)
+        notes_box.set_margin_end(18)
+
+        for rel in self._release_newer:
+            heading = Gtk.Label(label=rel["tag_name"])
+            heading.add_css_class("title-2")
+            heading.set_halign(Gtk.Align.START)
+            notes_box.append(heading)
+
+            body = Gtk.Label(label=rel["body"] or _("No release notes."))
+            body.set_wrap(True)
+            body.set_halign(Gtk.Align.START)
+            body.set_selectable(True)
+            notes_box.append(body)
+
+        scroll.set_child(notes_box)
+
+        toolbar = Adw.ToolbarView()
+        toolbar.add_top_bar(Adw.HeaderBar())
+        toolbar.set_content(scroll)
+        dialog.set_child(toolbar)
+        dialog.present(self)
 
     # ── Result callbacks ──────────────────────────────────────────────────
 
