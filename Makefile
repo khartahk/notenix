@@ -44,7 +44,7 @@ _gh-release:
 	@tag=$$(git describe --tags --abbrev=0); \
 	notes=$$(awk "/^## $$tag /{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md); \
 	echo "Creating GitHub release $$tag…"; \
-	printf '%s\n' "$$notes" | gh release create "$$tag" --title "$$tag" --notes-file -
+	printf '%s\n' "$$notes" | gh release create "$$tag" --repo n1x05/notenix --title "$$tag" --notes-file -
 
 # Install git hooks via pre-commit framework.
 # Run once after cloning the repo.

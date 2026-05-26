@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **dev**: add changelog target, auto-update via pre-commit, fix changelog path
 - **dev**: add gh CLI to devShell, GitHub release creation in Makefile
 - **releases**: add update notification with GitHub release notes, commitizen versioning, and Makefile release targets
 - **features**: add steam feature flag with gamescope and remote play
