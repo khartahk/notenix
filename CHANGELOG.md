@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **dev**: rewrite release targets using define+shell for correct post-bump tag
 - **dev**: use --files-only bump + manual tag to keep tag on correct commit
 
 ## v0.2.1 (2026-05-27)
