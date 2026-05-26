@@ -14,35 +14,43 @@ CZ = cd pkgs/kanal && cz
 # Auto-detect bump level from conventional commits since last tag, then
 # tag + push. This is the standard release flow.
 release:
-	$(CZ) bump
+	$(CZ) bump --files-only
 	$(CZ) changelog
-	git add CHANGELOG.md
-	git commit --amend --no-edit
+	$(eval TAG := $(shell cd pkgs/kanal && cz version --project))
+	git add -A
+	git commit -m "bump: version → v$(TAG)"
+	git tag v$(TAG)
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 # Manual overrides when you want to force a specific bump level.
 bump-patch:
-	$(CZ) bump --increment PATCH
+	$(CZ) bump --files-only --increment PATCH
 	$(CZ) changelog
-	git add CHANGELOG.md
-	git commit --amend --no-edit
+	$(eval TAG := $(shell cd pkgs/kanal && cz version --project))
+	git add -A
+	git commit -m "bump: version → v$(TAG)"
+	git tag v$(TAG)
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-minor:
-	$(CZ) bump --increment MINOR
+	$(CZ) bump --files-only --increment MINOR
 	$(CZ) changelog
-	git add CHANGELOG.md
-	git commit --amend --no-edit
+	$(eval TAG := $(shell cd pkgs/kanal && cz version --project))
+	git add -A
+	git commit -m "bump: version → v$(TAG)"
+	git tag v$(TAG)
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-major:
-	$(CZ) bump --increment MAJOR
+	$(CZ) bump --files-only --increment MAJOR
 	$(CZ) changelog
-	git add CHANGELOG.md
-	git commit --amend --no-edit
+	$(eval TAG := $(shell cd pkgs/kanal && cz version --project))
+	git add -A
+	git commit -m "bump: version → v$(TAG)"
+	git tag v$(TAG)
 	git push --follow-tags
 	$(MAKE) _gh-release
 
