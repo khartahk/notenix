@@ -113,6 +113,7 @@
             # Release tooling
             commitizen
             pre-commit
+            gh
             # Useful tools
             nixd
             nil
