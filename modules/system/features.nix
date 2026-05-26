@@ -64,6 +64,12 @@ in
       default     = false;
       description = "Unlock alternative package sources for extensions (unstable/upstream). May cause instability.";
     };
+
+    steam = mkOption {
+      type        = types.bool;
+      default     = false;
+      description = "Enable Steam game client with hardware controller support.";
+    };
   };
 
   config = mkMerge [
@@ -128,6 +134,15 @@ in
       # Allow Solaar to create virtual input devices (required for remapping)
       hardware.uinput.enable = true;
       users.groups.uinput.members = [ config.notenix.system.install.userName ];
+    })
+
+    (mkIf cfg.steam {
+      programs.steam = {
+        enable                  = true;
+        gamescopeSession.enable = true;
+        remotePlay.openFirewall = true;
+      };
+      programs.gamescope.enable = true;
     })
 
     (mkIf cfg.tailscale {

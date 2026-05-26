@@ -140,6 +140,13 @@ tabs:
         subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
         default: false
 
+      - key: notenix.features.steam
+        id: steam
+        const: STEAM
+        title: Steam
+        subtitle: "Valve Steam game client with hardware controller support"
+        default: false
+
       - key: notenix.features.experimental
         id: experimental
         const: EXPERIMENTAL
