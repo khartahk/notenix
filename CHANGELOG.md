@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **releases**: filter draft releases; add KANAL_VERSION dev override; import os
 - **dev**: push lightweight tag explicitly; --follow-tags skips them
 
 ## v0.2.2 (2026-05-27)
