@@ -5,6 +5,21 @@
 let
   cfg = config.notenix.desktop.gnome;
 
+  # Helper: read shell-version list from a built extension package and warn if
+  # it doesn't declare support for the running GNOME shell major version.
+  _gnomeMajor = lib.versions.major pkgs.gnome-shell.version;
+
+  _checkExtCompat = id: pkg:
+    let
+      metaFile = "${pkg}/share/gnome-shell/extensions/${pkg.extensionUuid}/metadata.json";
+      meta     = builtins.fromJSON (builtins.readFile metaFile);
+      supported = meta.shell-version or [];
+    in
+      if builtins.elem _gnomeMajor supported then pkg
+      else lib.warn
+        "notenix: extension '${id}' (${pkg.version or "?"}) declares shell-version ${builtins.toJSON supported} — GNOME ${_gnomeMajor} not listed. Extension may not load."
+        pkg;
+
   _extPkgs = {
     "appindicator"                = pkgs.gnomeExtensions.appindicator;
     "dash-to-dock"                = pkgs.gnomeExtensions.dash-to-dock;
@@ -14,20 +29,16 @@ let
         base = if cfg.dingSource == "stable"
                then pkgs.gnomeExtensions.gtk4-desktop-icons-ng-ding
                else pkgs-unstable.gnomeExtensions.gtk4-desktop-icons-ng-ding;
-      in
-        if cfg.dingSource == "upstream-main" && cfg.dingSourceHash != "" then
+        pkg  = if cfg.dingSource == "upstream-main" && cfg.dingSourceHash != "" then
           base.overrideAttrs (_: {
             version = "upstream-main";
             src = builtins.fetchTarball {
               url    = "https://gitlab.com/smedius/desktop-icons-ng/-/archive/main/desktop-icons-ng-main.tar.gz";
               sha256 = cfg.dingSourceHash;
             };
-            postPatch = ''
-              ${pkgs.jq}/bin/jq '.["shell-version"] += ["45","46","47","48","49"]' \
-                metadata.json > metadata.json.tmp && mv metadata.json.tmp metadata.json
-            '';
           })
         else base;
+      in _checkExtCompat "gtk4-desktop-icons-ng-ding" pkg;
     "tailscale-status"            = pkgs.gnomeExtensions.tailscale-status;
   };
   _activeExtIds  = builtins.filter (id: builtins.hasAttr id _extPkgs) cfg.extensions;
