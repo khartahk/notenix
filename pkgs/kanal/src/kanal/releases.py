@@ -15,6 +15,7 @@ check_update()   -> list[dict] | None
 from __future__ import annotations
 
 import json
+import os
 import time
 import urllib.error
 import urllib.request
@@ -47,7 +48,16 @@ _CACHE_TTL_SECS = 6 * 3600  # 6 hours
 # ---------------------------------------------------------------------------
 
 def get_installed_version() -> Version | None:
-    """Return the installed kanal package version, or None if not installed."""
+    """Return the installed kanal package version, or None if not installed.
+
+    Set KANAL_VERSION env var to override (useful for dev testing the banner).
+    """
+    override = os.environ.get("KANAL_VERSION")
+    if override:
+        try:
+            return Version(override)
+        except InvalidVersion:
+            pass
     try:
         return Version(version("kanal"))
     except (PackageNotFoundError, InvalidVersion):
@@ -149,7 +159,7 @@ def check_update() -> list[dict] | None:
             rel_version = Version(tag.lstrip("v"))
         except InvalidVersion:
             continue
-        if rel_version > installed and not rel.get("prerelease", False):
+        if rel_version > installed and not rel.get("prerelease", False) and not rel.get("draft", False):
             newer.append({
                 "tag_name":     tag,
                 "body":         rel.get("body") or "",

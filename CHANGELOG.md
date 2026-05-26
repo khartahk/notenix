@@ -1,3 +1,9 @@
+## Unreleased
+
+### Fix
+
+- **dev**: push lightweight tag explicitly; --follow-tags skips them
+
 ## v0.2.2 (2026-05-27)
 
 ### Fix
