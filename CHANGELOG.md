@@ -32,6 +32,7 @@
 
 ### Fix
 
+- **dev**: run cz from pkgs/kanal so pep621 provider finds pyproject.toml
 - **dev**: pass --repo to gh release create since origin is Gitea
 - **dev**: remove --quiet flag unsupported by this pre-commit version
 - **gnome**: remove postPatch shell-version hack; add build-time compat warning
