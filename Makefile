@@ -20,7 +20,12 @@ define do-release
 	git add -A; \
 	git commit -m "bump: version → v$$tag"; \
 	git tag "v$$tag"; \
-	git push --follow-tags; \
+	git push origin HEAD "v$$tag"; \
+	echo "Waiting for GitHub mirror to sync tag v$$tag…"; \
+	for i in 1 2 3 4 5 6 7 8 9 10; do \
+	  gh api repos/n1x05/notenix/git/refs/tags/"v$$tag" >/dev/null 2>&1 && break; \
+	  echo "  $$i/10 not yet…"; sleep 6; \
+	done; \
 	notes=$$(awk "/^## v$$tag /{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md); \
 	echo "Creating GitHub release v$$tag…"; \
 	printf '%s\n' "$$notes" | gh release create "v$$tag" --repo n1x05/notenix --title "v$$tag" --notes-file -
