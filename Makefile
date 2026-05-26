@@ -7,30 +7,36 @@
 #   make release      # auto-detect bump from commits, tag, push
 #   make install-hooks  # install pre-commit hooks into .git/
 
-.PHONY: bump-patch bump-minor bump-major release install-hooks _gh-release
+CZ = cz --config pkgs/kanal/pyproject.toml
+
+.PHONY: bump-patch bump-minor bump-major release changelog install-hooks _gh-release
 
 # Auto-detect bump level from conventional commits since last tag, then
 # tag + push. This is the standard release flow.
 release:
-	cz bump --changelog
+	$(CZ) bump --changelog
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 # Manual overrides when you want to force a specific bump level.
 bump-patch:
-	cz bump --increment PATCH --changelog
+	$(CZ) bump --increment PATCH --changelog
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-minor:
-	cz bump --increment MINOR --changelog
+	$(CZ) bump --increment MINOR --changelog
 	git push --follow-tags
 	$(MAKE) _gh-release
 
 bump-major:
-	cz bump --increment MAJOR --changelog
+	$(CZ) bump --increment MAJOR --changelog
 	git push --follow-tags
 	$(MAKE) _gh-release
+
+# Regenerate CHANGELOG.md from all conventional commits (no version bump).
+changelog:
+	$(CZ) changelog
 
 # Create a GitHub release for the latest tag, using its CHANGELOG section as notes.
 # Requires: gh CLI authenticated (gh auth login).
