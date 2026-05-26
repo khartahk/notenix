@@ -1,3 +1,9 @@
+## v0.2.1 (2026-05-27)
+
+### Fix
+
+- **dev**: run cz changelog separately after bump to ensure CHANGELOG.md is written
+
 ## v0.2.0 (2026-05-27)
 
 ### Feat
