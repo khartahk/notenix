@@ -127,6 +127,10 @@
             echo "notenix dev shell — $(python --version)"
             echo "Run GUI: python -m kanal"
             echo "Run CLI: python -m kanal --ctl status"
+            # Install pre-commit hooks if not already installed
+            if [ -d .git ] && [ ! -f .git/hooks/commit-msg ]; then
+              pre-commit install --hook-type commit-msg --quiet
+            fi
           '';
         };
     };
