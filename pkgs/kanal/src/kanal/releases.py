@@ -1,13 +1,17 @@
 """kanal.releases — check for notenix releases on GitHub.
 
-Compares the installed kanal version (from package metadata, baked in at
-build time from pyproject.toml) against the latest GitHub release.
+Compares the tag currently pinned in the machine's flake.nix
+(inputs.notenix.url ?ref=vX.Y.Z) against the latest GitHub release.
+Falls back to comparing the installed kanal package version when no tag
+is pinned (e.g. branch-tracking channels).
 
 Public API
 ----------
+get_pinned_tag() -> Version | None
+    Returns the version currently pinned in flake.nix, or None.
 check_update()   -> list[dict] | None
     Returns a list of release dicts (tag_name, body, published_at) that are
-    newer than the installed version, or None on network/parse failure.
+    newer than the pinned/installed version, or None on network/parse failure.
     Uses a local cache with ETag-based revalidation — no data transferred
     when nothing has changed on the server.
 """
@@ -23,6 +27,8 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from packaging.version import InvalidVersion, Version
+
+import re
 
 import kanal.constants as _const
 
@@ -47,6 +53,27 @@ _CACHE_TTL_SECS = 6 * 3600  # 6 hours
 # Version helpers
 # ---------------------------------------------------------------------------
 
+def get_pinned_tag() -> Version | None:
+    """Return the tag version currently pinned in flake.nix, or None.
+
+    Reads ``inputs.notenix.url`` and extracts the ``?ref=vX.Y.Z`` or
+    ``/vX.Y.Z`` suffix.  Returns None when tracking a branch.
+    """
+    try:
+        from pathlib import Path
+        text = _const.LOCAL_FLAKE_PATH.read_text()
+        for line in text.splitlines():
+            t = line.strip()
+            if t.startswith("inputs.notenix.url"):
+                m = re.search(r'"[^"]*[/?]ref=(v?[^"&\s]+)"', t) or \
+                    re.search(r'"[^"]*/([vV]\d+\.\d+[^"]*)"', t)
+                if m:
+                    return Version(m.group(1).lstrip("v"))
+    except Exception:
+        pass
+    return None
+
+
 def get_installed_version() -> Version | None:
     """Return the installed kanal package version, or None if not installed.
 
@@ -62,6 +89,11 @@ def get_installed_version() -> Version | None:
         return Version(version("kanal"))
     except (PackageNotFoundError, InvalidVersion):
         return None
+
+
+def _current_version() -> Version | None:
+    """Return pinned tag if set, else installed kanal version."""
+    return get_pinned_tag() or get_installed_version()
 
 
 # ---------------------------------------------------------------------------
@@ -122,14 +154,17 @@ def _fetch_releases(etag: str | None) -> tuple[list[dict] | None, str | None]:
 # ---------------------------------------------------------------------------
 
 def check_update() -> list[dict] | None:
-    """Return releases newer than the installed version, newest first.
+    """Return releases newer than the pinned/installed version, newest first.
 
-    Returns an empty list if up-to-date, None on unrecoverable error
-    (no network, package not installed, etc.).
+    Compares the tag in flake.nix (inputs.notenix.url ?ref=vX.Y.Z) against
+    GitHub releases.  Falls back to the kanal package version when no tag is
+    pinned (branch-tracking channels).
+
+    Returns an empty list if up-to-date, None on unrecoverable error.
     """
-    installed = get_installed_version()
-    if installed is None:
-        return None  # running from source without install — skip
+    current = _current_version()
+    if current is None:
+        return None
 
     cache = _load_cache()
     now = time.time()
@@ -159,7 +194,7 @@ def check_update() -> list[dict] | None:
             rel_version = Version(tag.lstrip("v"))
         except InvalidVersion:
             continue
-        if rel_version > installed and not rel.get("prerelease", False) and not rel.get("draft", False):
+        if rel_version > current and not rel.get("prerelease", False) and not rel.get("draft", False):
             newer.append({
                 "tag_name":     tag,
                 "body":         rel.get("body") or "",

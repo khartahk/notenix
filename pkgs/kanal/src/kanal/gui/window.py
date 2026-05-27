@@ -18,6 +18,35 @@ from kanal import backend
 from kanal import releases as _releases
 
 
+import html
+import re
+
+
+def _md_to_pango(text: str) -> str:
+    """Convert basic markdown to Pango markup for Gtk.Label."""
+    lines = []
+    for line in text.splitlines():
+        line = html.escape(line)
+        # ### Header → bold large
+        if line.startswith("### "):
+            lines.append(f'<b><big>{line[4:]}</big></b>')
+        elif line.startswith("## "):
+            lines.append(f'<b><big>{line[3:]}</big></b>')
+        elif line.startswith("# "):
+            lines.append(f'<b><big>{line[2:]}</big></b>')
+        else:
+            # bullet - item
+            line = re.sub(r'^- ', '• ', line)
+            # **bold**
+            line = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
+            # *italic*
+            line = re.sub(r'\*(.+?)\*', r'<i>\1</i>', line)
+            # `code`
+            line = re.sub(r'`(.+?)`', r'<tt>\1</tt>', line)
+            lines.append(line)
+    return '\n'.join(lines)
+
+
 class ChannelWindow(Adw.Window):
     _RELOAD_COOLDOWN_SECS = 30
 
@@ -29,6 +58,7 @@ class ChannelWindow(Adw.Window):
         meta    = backend.load_metadata()
         status  = backend.read_status()
         machine = backend.read_machine()
+        features_state = backend.read_features()
 
         ext_sources_state = backend.read_extension_sources()
         ext_hashes_state  = backend.read_extension_source_hashes()
@@ -66,21 +96,38 @@ class ChannelWindow(Adw.Window):
         channel_page = Adw.PreferencesPage()
 
         self._channel_meta = meta["channels"]
+        # All channels sorted: non-experimental first, then experimental
         self._channel_ids = sorted(
             self._channel_meta.keys(),
-            key=lambda k: (not self._channel_meta[k].get("default", False), k),
+            key=lambda k: (
+                self._channel_meta[k].get("experimental", False),
+                not self._channel_meta[k].get("default", False),
+                k,
+            ),
         )
         channel_labels = [self._channel_friendly(k, self._channel_meta[k].get("default", False)) for k in self._channel_ids]
 
         main_group = Adw.PreferencesGroup()
         channel_page.add(main_group)
 
+        # Stable track info row (shown when NOT experimental)
+        self._stable_track_row = Adw.ActionRow()
+        self._stable_track_row.set_title(_("Update track"))
+        self._stable_track_row.set_subtitle(_("Stable releases — updates when a new release is available"))
+        main_group.add(self._stable_track_row)
+
         self._channel_row = Adw.ComboRow()
         self._channel_row.set_title(_("Update channel"))
+        self._channel_row.set_subtitle(_("Visible in experimental mode only"))
         self._channel_row.set_model(Gtk.StringList.new(channel_labels))
         selected_ch = self._channel_ids.index(status.channel) if status.channel in self._channel_ids else 0
         self._channel_row.set_selected(selected_ch)
         main_group.add(self._channel_row)
+
+        # Show channel picker only when experimental; show stable row otherwise
+        _is_exp_init = features_state.get("notenix.features.experimental", False)
+        self._stable_track_row.set_visible(not _is_exp_init)
+        self._channel_row.set_visible(_is_exp_init)
 
         self._preset_row = Adw.ComboRow()
         self._preset_row.set_title(_("Configuration preset"))
@@ -192,7 +239,6 @@ class ChannelWindow(Adw.Window):
         # _tab_rows: { tab_id: { item_key_or_id: SwitchRow } }
         self._tab_rows: dict[str, dict[str, Adw.SwitchRow]] = {}
 
-        features_state   = backend.read_features()
         extensions_state = set(backend.read_extensions())
         apps_state       = set(backend.read_apps())
         is_experimental  = features_state.get("notenix.features.experimental", False)
@@ -614,8 +660,11 @@ class ChannelWindow(Adw.Window):
     # ── Callbacks ─────────────────────────────────────────────────────────
 
     def _on_experimental_toggled(self, row: Adw.SwitchRow, _param) -> None:
-        """Show/hide source pickers and reset to default when experimental is disabled."""
+        """Show/hide source pickers and channel row; reset when experimental is disabled."""
         is_exp = row.get_active()
+        # Toggle channel picker vs stable track label
+        self._channel_row.set_visible(is_exp)
+        self._stable_track_row.set_visible(not is_exp)
         for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
             if is_exp:
                 combo.set_visible(True)
@@ -733,7 +782,12 @@ class ChannelWindow(Adw.Window):
         return GLib.SOURCE_REMOVE
 
     def _on_release_banner_clicked(self, _banner) -> None:
-        """Show What's New dialog with all pending release notes."""
+        """Show What's New dialog with option to apply update."""
+        if not self._release_newer:
+            return
+        latest_tag = self._release_newer[0]["tag_name"]
+        is_stable = not (self._experimental_row and self._experimental_row.get_active())
+
         dialog = Adw.Dialog()
         dialog.set_title(_("What's New"))
         dialog.set_content_width(560)
@@ -755,7 +809,8 @@ class ChannelWindow(Adw.Window):
             heading.set_halign(Gtk.Align.START)
             notes_box.append(heading)
 
-            body = Gtk.Label(label=rel["body"] or _("No release notes."))
+            body = Gtk.Label(label=_md_to_pango(rel["body"] or _("No release notes.")))
+            body.set_use_markup(True)
             body.set_wrap(True)
             body.set_halign(Gtk.Align.START)
             body.set_selectable(True)
@@ -763,13 +818,42 @@ class ChannelWindow(Adw.Window):
 
         scroll.set_child(notes_box)
 
+        header = Adw.HeaderBar()
+        # Add "Apply update" button when on stable track
+        if is_stable:
+            apply_btn = Gtk.Button(label=_(f"Apply {latest_tag}"))
+            apply_btn.add_css_class("suggested-action")
+            apply_btn.connect("clicked", lambda _b: (dialog.close(), self._apply_release(latest_tag)))
+            header.pack_end(apply_btn)
+
         toolbar = Adw.ToolbarView()
-        toolbar.add_top_bar(Adw.HeaderBar())
+        toolbar.add_top_bar(header)
         toolbar.set_content(scroll)
         dialog.set_child(toolbar)
         dialog.present(self)
 
     # ── Result callbacks ──────────────────────────────────────────────────
+
+    def _apply_release(self, tag: str) -> None:
+        """Pin flake.nix to *tag* via pkexec, then trigger rebuild."""
+        from kanal import privileged as _priv
+        self._release_banner.set_revealed(False)
+
+        def _run():
+            lines = []
+            rc = 0
+            for chunk in _priv.pkexec_apply_release_stream(tag):
+                if chunk is None:
+                    break
+                if isinstance(chunk, tuple):
+                    _, rc = chunk
+                else:
+                    lines.append(chunk)
+            msg = f"Pinned to {tag}." if rc == 0 else f"Failed to pin {tag} (exit {rc})."
+            err = None if rc == 0 else "\n".join(lines)
+            GLib.idle_add(self._show_result, msg, err)
+
+        threading.Thread(target=_run, daemon=True).start()
 
     def _done_action(self, message: str, error: str | None, btn: Gtk.Button, label: str = "Save"):
         if not error:

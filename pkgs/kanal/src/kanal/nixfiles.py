@@ -206,11 +206,17 @@ def read_status() -> Status:
     if _const.LOCAL_FLAKE_PATH.exists():
         raw_url = _get_flake_url(_const.LOCAL_FLAKE_PATH.read_text())
         if raw_url:
-            matched = next(
-                (k for k, v in ch_map.items() if v["flake"] == raw_url), None
-            )
-            if matched:
-                channel = matched
+            # Check if URL contains a tag ref (?ref=vX.Y.Z or /vX.Y.Z)
+            tag_match = re.search(r'[/?]ref=(v?[\d]+\.[\d]+[^&"\s]*)', raw_url) or \
+                        re.search(r'/(v\d+\.\d+[^/"]*)"?$', raw_url)
+            if tag_match:
+                channel = "stable"
+            else:
+                matched = next(
+                    (k for k, v in ch_map.items() if v["flake"] == raw_url), None
+                )
+                if matched:
+                    channel = matched
 
     # Determine preset and operation from machine.nix
     if _const.MACHINE_PATH.exists():
@@ -290,3 +296,31 @@ def set_channel(
     _const.LOCAL_FLAKE_PATH.parent.mkdir(parents=True, exist_ok=True)
     _const.LOCAL_FLAKE_PATH.write_text(flake_contents)
     _const.MACHINE_PATH.write_text(machine_contents)
+
+
+def apply_release(tag: str) -> None:
+    """Pin flake.nix to a specific release tag.
+
+    Writes ``inputs.notenix.url = "github:n1x05/notenix?ref=vX.Y.Z"``
+    so the next ``nix flake update`` resolves exactly that tag.
+    The autoupgrade service will then rebuild to the pinned release.
+
+    Raises ``OSError`` on I/O failure.
+    """
+    tag = tag.lstrip("v")
+    flake_url = f"{_const.FLAKE_REF}?ref=v{tag}"
+
+    flake_contents = (
+        _const.LOCAL_FLAKE_PATH.read_text()
+        if _const.LOCAL_FLAKE_PATH.exists()
+        else _DEFAULT_FLAKE
+    )
+    flake_contents = _set_flake_url(flake_contents, flake_url)
+
+    if _const.DRY_RUN:
+        print(f"[kanal dry-run] would pin release v{tag} → {flake_url}", flush=True)
+        print(f"[kanal dry-run] would write to {_const.LOCAL_FLAKE_PATH}:\n{flake_contents}", flush=True)
+        return
+
+    _const.LOCAL_FLAKE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _const.LOCAL_FLAKE_PATH.write_text(flake_contents)

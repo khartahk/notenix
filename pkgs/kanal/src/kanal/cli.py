@@ -170,6 +170,18 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_apply_release(args: argparse.Namespace) -> int:
+    """Pin flake.nix to a specific release tag (requires root)."""
+    try:
+        from kanal.nixfiles import apply_release
+        apply_release(args.tag)
+    except OSError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    print(f"Pinned to release {args.tag}.", flush=True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="kanalctl",
@@ -245,6 +257,11 @@ def build_parser() -> argparse.ArgumentParser:
     sa.add_argument("--ext-hashes-json",  dest="ext_hashes_json",  default=None,
                     help="JSON object mapping nix_hash_key to sha256 hash")
     sa.set_defaults(func=_cmd_save_all)
+
+    # apply-release
+    ar = sub.add_parser("apply-release", help="Pin flake.nix to a release tag (requires root)")
+    ar.add_argument("tag", help="Release tag, e.g. v0.2.3")
+    ar.set_defaults(func=_cmd_apply_release)
 
     return p
 

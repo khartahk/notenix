@@ -45,10 +45,12 @@ _DEFAULT_PRESETS: list[dict] = [
 _DEFAULT_METADATA: dict = {
     "flakeBase": "github:n1x05/notenix",
     "channels": {
-        "main":     {"flake": "github:n1x05/notenix",          "label": "main",
-                     "default": True,  "presets": _DEFAULT_PRESETS},
-        "unstable": {"flake": "github:n1x05/notenix/unstable", "label": "unstable",
-                     "default": False, "presets": _DEFAULT_PRESETS},
+        "stable":   {"flake": "github:n1x05/notenix",          "label": "Stable releases",
+                     "default": True,  "experimental": False, "presets": _DEFAULT_PRESETS},
+        "main":     {"flake": "github:n1x05/notenix",          "label": "main (branch)",
+                     "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
+        "unstable": {"flake": "github:n1x05/notenix/unstable", "label": "unstable (branch)",
+                     "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
     },
 }
 
@@ -175,15 +177,26 @@ def refresh_metadata(callback=None) -> None:
         branches, default_br  = _fetch_github_branches(owner_repo)
 
         ch_map = {}
+        # Stable release-tracking channel (not experimental)
+        stable_presets = _fetch_branch_presets(flake_base, fallback)
+        ch_map["stable"] = {
+            "flake":        flake_base,
+            "label":        "Stable releases",
+            "default":      True,
+            "experimental": False,
+            "presets":      stable_presets,
+        }
+        # Branch-tracking channels (experimental)
         for branch in branches:
-            is_default = (branch == default_br)
-            flake_url  = flake_base if is_default else f"{flake_base}/{branch}"
+            is_default_branch = (branch == default_br)
+            flake_url  = flake_base if is_default_branch else f"{flake_base}/{branch}"
             presets    = _fetch_branch_presets(flake_url, fallback)
             ch_map[branch] = {
-                "flake":   flake_url,
-                "label":   branch,
-                "default": is_default,
-                "presets": presets,
+                "flake":        flake_url,
+                "label":        f"{branch} (branch)",
+                "default":      False,
+                "experimental": True,
+                "presets":      presets,
             }
 
         data = {"flakeBase": flake_base, "channels": ch_map}

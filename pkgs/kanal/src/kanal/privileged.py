@@ -104,6 +104,12 @@ def prefetch_hash_stream(fetch_url: str):
     yield None, proc.returncode
 
 
+def pkexec_apply_release_stream(tag: str):
+    """Pin flake.nix to *tag* via pkexec kanalctl apply-release."""
+    cmd = ["pkexec", _const.KANALCTL_BIN, "apply-release", tag]
+    yield from _pkexec_stream(cmd, f"apply-release {tag}")
+
+
 def pkexec_save_all_stream(payload: dict, rebuild: bool = False):
     cmd = ["pkexec", _const.KANALCTL_BIN, "save-all"]
     for tab in _const.TAB_CATALOG:
