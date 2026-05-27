@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Feat
+
+- **releases**: stable release track, apply-release, hide channel row unless experimental
+
 ### Fix
 
 - **kanal**: sync flake.nix version to 0.2.2, add version_files to cz config
