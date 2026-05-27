@@ -2,6 +2,7 @@
 
 ### Feat
 
+- **kanal**: release+branch dropdowns with mutual deselection and i18n
 - **releases**: stable release track, apply-release, hide channel row unless experimental
 - **gnome**: add minimize/maximize window buttons via dconf
 
