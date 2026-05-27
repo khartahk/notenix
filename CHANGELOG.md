@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **dev**: sync flake.nix version to 0.4.0
 - **kanal**: reload button also refreshes release list; dropdown updated after check_update
 
 ## v0.4.0 (2026-05-27)
