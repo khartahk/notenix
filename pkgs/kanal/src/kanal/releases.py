@@ -153,6 +153,31 @@ def _fetch_releases(etag: str | None) -> tuple[list[dict] | None, str | None]:
 # Public API
 # ---------------------------------------------------------------------------
 
+def get_all_releases() -> list[dict]:
+    """Return all non-draft, non-prerelease releases from cache, newest first.
+
+    Falls back to empty list when cache is absent or unreadable.
+    """
+    cache = _load_cache()
+    if not cache:
+        return []
+    result = []
+    for rel in cache.get("releases", []):
+        if rel.get("draft") or rel.get("prerelease"):
+            continue
+        tag = rel.get("tag_name", "")
+        try:
+            Version(tag.lstrip("v"))
+        except InvalidVersion:
+            continue
+        result.append({
+            "tag_name":     tag,
+            "published_at": rel.get("published_at", ""),
+        })
+    result.sort(key=lambda r: Version(r["tag_name"].lstrip("v")), reverse=True)
+    return result
+
+
 def check_update() -> list[dict] | None:
     """Return releases newer than the pinned/installed version, newest first.
 

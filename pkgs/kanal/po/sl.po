@@ -320,3 +320,9 @@ msgstr "Upravljanje dovoljenj Flatpak"
 
 msgid "Remote desktop"
 msgstr "Oddaljeno namizje"
+
+msgid "— select release —"
+msgstr "— izberi izdajo —"
+
+msgid "— select branch —"
+msgstr "— izberi vejo —"

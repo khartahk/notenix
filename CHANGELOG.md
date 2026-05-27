@@ -1,11 +1,13 @@
-## v0.3.0 (2026-05-27)
+## Unreleased
 
 ### Feat
 
 - **releases**: stable release track, apply-release, hide channel row unless experimental
+- **gnome**: add minimize/maximize window buttons via dconf
 
 ### Fix
 
+- **dev**: fix version_files pattern for flake.nix semicolon; sync flake.nix to 0.3.0
 - **kanal**: sync flake.nix version to 0.2.2, add version_files to cz config
 - **releases**: filter draft releases; add KANAL_VERSION dev override; import os
 - **dev**: push lightweight tag explicitly; --follow-tags skips them

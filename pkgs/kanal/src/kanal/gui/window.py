@@ -96,7 +96,52 @@ class ChannelWindow(Adw.Window):
         channel_page = Adw.PreferencesPage()
 
         self._channel_meta = meta["channels"]
-        # All channels sorted: non-experimental first, then experimental
+        _is_exp_init = features_state.get("notenix.features.experimental", False)
+
+        # ── Release dropdown (always visible) ──────────────────────────
+        # Populated from GitHub release cache; current tag marked with ★
+        self._pinned_tag    = _releases.get_pinned_tag()  # Version | None
+        self._all_releases  = _releases.get_all_releases()  # [{tag_name, published_at}]
+        self._release_ids   = ["_placeholder_"] + [r["tag_name"] for r in self._all_releases]
+
+        # "— select release —" placeholder at index 0 for experimental mode
+        _RELEASE_PLACEHOLDER = _("— select release —")
+        self._release_placeholder_label = _RELEASE_PLACEHOLDER
+        release_labels = self._build_release_labels()
+
+        main_group = Adw.PreferencesGroup()
+        channel_page.add(main_group)
+
+        self._release_row = Adw.ComboRow()
+        self._release_row.set_title(_("Release"))
+        self._release_row.set_model(Gtk.StringList.new(release_labels))
+        self._release_row.set_selected(self._release_selected_index())
+        main_group.add(self._release_row)
+
+        # ── Branch dropdown (experimental only) ───────────────────────
+        # Only main, unstable, feat/* branches
+        self._branch_ids = [""] + [
+            k for k, v in self._channel_meta.items()
+            if v.get("experimental", False)
+            and (k in ("main", "unstable") or k.startswith("feat/"))
+        ]
+        branch_labels = [_("— select branch —")] + [
+            self._branch_label(k) for k in self._branch_ids[1:]
+        ]
+
+        # Determine current branch selection
+        _cur_branch = status.channel if status.channel in self._branch_ids else ""
+        _branch_sel = self._branch_ids.index(_cur_branch) if _cur_branch in self._branch_ids else 0
+
+        self._channel_row = Adw.ComboRow()
+        self._channel_row.set_title(_("Branch"))
+        self._channel_row.set_subtitle(_("Track a development branch instead of a release"))
+        self._channel_row.set_model(Gtk.StringList.new(branch_labels))
+        self._channel_row.set_selected(_branch_sel)
+        self._channel_row.set_visible(_is_exp_init)
+        main_group.add(self._channel_row)
+
+        # ── Channel IDs still needed for preset/payload logic ─────────
         self._channel_ids = sorted(
             self._channel_meta.keys(),
             key=lambda k: (
@@ -105,37 +150,18 @@ class ChannelWindow(Adw.Window):
                 k,
             ),
         )
-        channel_labels = [self._channel_friendly(k, self._channel_meta[k].get("default", False)) for k in self._channel_ids]
-
-        main_group = Adw.PreferencesGroup()
-        channel_page.add(main_group)
-
-        # Stable track info row (shown when NOT experimental)
-        self._stable_track_row = Adw.ActionRow()
-        self._stable_track_row.set_title(_("Update track"))
-        self._stable_track_row.set_subtitle(_("Stable releases — updates when a new release is available"))
-        main_group.add(self._stable_track_row)
-
-        self._channel_row = Adw.ComboRow()
-        self._channel_row.set_title(_("Update channel"))
-        self._channel_row.set_subtitle(_("Visible in experimental mode only"))
-        self._channel_row.set_model(Gtk.StringList.new(channel_labels))
-        selected_ch = self._channel_ids.index(status.channel) if status.channel in self._channel_ids else 0
-        self._channel_row.set_selected(selected_ch)
-        main_group.add(self._channel_row)
-
-        # Show channel picker only when experimental; show stable row otherwise
-        _is_exp_init = features_state.get("notenix.features.experimental", False)
-        self._stable_track_row.set_visible(not _is_exp_init)
-        self._channel_row.set_visible(_is_exp_init)
 
         self._preset_row = Adw.ComboRow()
         self._preset_row.set_title(_("Configuration preset"))
         self._preset_row.set_subtitle(_("Feature set enabled by default on this machine"))
         main_group.add(self._preset_row)
 
-        self._update_preset_model(self._channel_ids[selected_ch], current_preset=status.preset)
+        # Determine active channel for preset: branch if selected, else stable
+        _init_ch = _cur_branch if _cur_branch else "stable"
+        self._update_preset_model(_init_ch, current_preset=status.preset)
         self._current_preset = status.preset
+
+        self._release_row.connect("notify::selected", self._on_release_changed)
         self._channel_row.connect("notify::selected", self._on_channel_changed)
         self._preset_row.connect("notify::selected", self._on_preset_changed)
 
@@ -407,6 +433,7 @@ class ChannelWindow(Adw.Window):
     def _connect_change_signals(self) -> None:
         """Wire all interactive widgets to _update_buttons."""
         cb = lambda *_: self._update_buttons()  # noqa: E731
+        self._release_row.connect("notify::selected", cb)
         self._channel_row.connect("notify::selected", cb)
         self._preset_row.connect("notify::selected", cb)
         self._op_now_btn.connect("notify::active", cb)
@@ -463,27 +490,45 @@ class ChannelWindow(Adw.Window):
         GLib.timeout_add_seconds(1, self._tick_cooldown)
         self._channel_meta = new_meta["channels"]
 
-        cur_ch_idx = self._channel_row.get_selected()
-        cur_ch     = self._channel_ids[cur_ch_idx] if cur_ch_idx < len(self._channel_ids) else None
-        cur_preset = self._preset_ids[self._preset_row.get_selected()] if getattr(self, "_preset_ids", None) else None
+        cur_branch_idx = self._channel_row.get_selected()
+        cur_branch     = self._branch_ids[cur_branch_idx] if cur_branch_idx < len(self._branch_ids) else ""
+        cur_preset     = self._preset_ids[self._preset_row.get_selected()] if getattr(self, "_preset_ids", None) else None
+
+        # Rebuild branch list (main, unstable, feat/* only)
+        self._branch_ids = [""] + [
+            k for k, v in self._channel_meta.items()
+            if v.get("experimental", False)
+            and (k in ("main", "unstable") or k.startswith("feat/"))
+        ]
+        branch_labels = [_("— select branch —")] + [
+            self._branch_label(k) for k in self._branch_ids[1:]
+        ]
+        self._channel_row.set_model(Gtk.StringList.new(branch_labels))
+        new_branch_idx = self._branch_ids.index(cur_branch) if cur_branch in self._branch_ids else 0
+        self._channel_row.set_selected(new_branch_idx)
+
+        # Rebuild release list
+        self._all_releases = _releases.get_all_releases()
+        self._release_ids  = ["_placeholder_"] + [r["tag_name"] for r in self._all_releases]
+        self._pinned_tag   = _releases.get_pinned_tag()
+        self._release_row.set_model(Gtk.StringList.new(self._build_release_labels()))
+        self._release_row.set_selected(self._release_selected_index())
+
+        # Update presets for active channel
+        active_ch = cur_branch if cur_branch else "stable"
+        self._update_preset_model(active_ch, current_preset=cur_preset)
 
         self._channel_ids = sorted(
             self._channel_meta.keys(),
-            key=lambda k: (not self._channel_meta[k].get("default", False), k),
+            key=lambda k: (
+                self._channel_meta[k].get("experimental", False),
+                not self._channel_meta[k].get("default", False),
+                k,
+            ),
         )
-        labels = [self._channel_friendly(k, self._channel_meta[k].get("default", False)) for k in self._channel_ids]
-        self._channel_row.set_model(Gtk.StringList.new(labels))
-        new_idx = self._channel_ids.index(cur_ch) if cur_ch in self._channel_ids else 0
-        self._channel_row.set_selected(new_idx)
-        self._update_preset_model(self._channel_ids[new_idx], current_preset=cur_preset)
 
         self._toast(_("Channel list updated"))
         return GLib.SOURCE_REMOVE
-
-    @staticmethod
-    def _channel_friendly(branch: str, is_default: bool = False) -> str:
-        label = {"main": _("Stable"), "unstable": _("Testing")}.get(branch, branch.capitalize())
-        return f"{label} ★" if is_default else label
 
     def _update_cooldown_label(self) -> None:
         self._cooldown_label.set_label(f"{self._reload_cooldown}s")
@@ -509,10 +554,72 @@ class ChannelWindow(Adw.Window):
         else:
             self._preset_row.set_selected(0)
 
+    def _build_release_labels(self) -> list[str]:
+        """Build release ComboRow labels, marking the currently pinned tag with ★."""
+        from packaging.version import Version
+        labels = [_("— select release —")]
+        for r in self._all_releases:
+            tag = r["tag_name"]
+            label = tag
+            try:
+                if self._pinned_tag and Version(tag.lstrip("v")) == self._pinned_tag:
+                    label = f"{tag} ★ (current)"
+            except Exception:
+                pass
+            labels.append(label)
+        return labels
+
+    def _release_selected_index(self) -> int:
+        """Return index of the currently pinned tag (offset by 1 for placeholder), or 0."""
+        if self._pinned_tag and self._release_ids:
+            from packaging.version import Version
+            for i, tag in enumerate(self._release_ids):
+                if tag == "_placeholder_":
+                    continue
+                try:
+                    if Version(tag.lstrip("v")) == self._pinned_tag:
+                        return i
+                except Exception:
+                    pass
+        return 0
+
+    def _on_release_changed(self, row, _param) -> None:
+        """Release selected — clear branch to placeholder, update presets."""
+        idx = row.get_selected()
+        if idx == 0:
+            # Placeholder selected — nothing to do
+            self._update_buttons()
+            return
+        # Deselect branch
+        self._channel_row.handler_block_by_func(self._on_channel_changed)
+        self._channel_row.set_selected(0)
+        self._channel_row.handler_unblock_by_func(self._on_channel_changed)
+        self._update_preset_model("stable")
+        self._update_buttons()
+
     def _on_channel_changed(self, row, _param) -> None:
-        idx        = row.get_selected()
-        channel_id = self._channel_ids[idx] if idx < len(self._channel_ids) else self._channel_ids[0]
-        self._update_preset_model(channel_id)
+        idx = row.get_selected()
+        if idx == 0:
+            self._update_buttons()
+            return
+        channel_id = self._branch_ids[idx] if idx < len(self._branch_ids) else ""
+        if channel_id:
+            # Deselect release back to placeholder
+            self._release_row.handler_block_by_func(self._on_release_changed)
+            self._release_row.set_selected(0)
+            self._release_row.handler_unblock_by_func(self._on_release_changed)
+            self._update_preset_model(channel_id)
+        self._update_buttons()
+
+    @staticmethod
+    def _branch_label(branch: str) -> str:
+        """Human label for a branch — no capitalization, returned as-is."""
+        return branch
+
+    @staticmethod
+    def _channel_friendly(branch: str, is_default: bool = False) -> str:
+        label = {"main": _("Stable"), "unstable": _("Testing")}.get(branch, branch.capitalize())
+        return f"{label} ★" if is_default else label
 
     _DM_GROUP: dict[str, str] = {
         "desktop":      "gdm",
@@ -537,13 +644,30 @@ class ChannelWindow(Adw.Window):
             self._op_row.set_subtitle(_("Applies to manual Save and the automatic upgrade service"))
 
     def _channel_selection(self) -> tuple[str, str, str, str]:
-        ch_idx    = self._channel_row.get_selected()
-        channel   = self._channel_ids[ch_idx] if ch_idx < len(self._channel_ids) else self._channel_ids[0]
-        op        = "switch" if self._op_now_btn.get_active() else "boot"
-        idx       = self._preset_row.get_selected()
-        preset    = self._preset_ids[idx] if idx < len(self._preset_ids) else self._preset_ids[0]
-        flake_url = self._channel_meta.get(channel, {}).get("flake", "")
-        return channel, op, preset, flake_url
+        """Return (channel, operation, preset, flake_url) from current UI state.
+
+        Priority: branch > release.  If a branch is selected (index > 0), use
+        it.  Otherwise use the selected release tag as a ?ref= URL.
+        """
+        op     = "switch" if self._op_now_btn.get_active() else "boot"
+        idx    = self._preset_row.get_selected()
+        preset = self._preset_ids[idx] if idx < len(self._preset_ids) else (self._preset_ids[0] if self._preset_ids else "desktop")
+
+        # Branch takes priority
+        branch_idx = self._channel_row.get_selected()
+        if branch_idx > 0 and branch_idx < len(self._branch_ids):
+            branch    = self._branch_ids[branch_idx]
+            flake_url = self._channel_meta.get(branch, {}).get("flake", "")
+            return branch, op, preset, flake_url
+
+        # Release selected (index 0 is placeholder — skip it)
+        rel_idx = self._release_row.get_selected()
+        if rel_idx > 0 and rel_idx < len(self._release_ids):
+            tag       = self._release_ids[rel_idx]
+            flake_url = f"github:n1x05/notenix?ref={tag}"
+            return "stable", op, preset, flake_url
+
+        return "stable", op, preset, "github:n1x05/notenix"
 
     def _machine_settings(self) -> dict[str, str]:
         result = {}
@@ -660,11 +784,15 @@ class ChannelWindow(Adw.Window):
     # ── Callbacks ─────────────────────────────────────────────────────────
 
     def _on_experimental_toggled(self, row: Adw.SwitchRow, _param) -> None:
-        """Show/hide source pickers and channel row; reset when experimental is disabled."""
+        """Show/hide branch row and source pickers; reset when experimental disabled."""
         is_exp = row.get_active()
-        # Toggle channel picker vs stable track label
+        # Branch picker only in experimental
         self._channel_row.set_visible(is_exp)
-        self._stable_track_row.set_visible(not is_exp)
+        if not is_exp:
+            # Reset branch to placeholder so release is active
+            self._channel_row.handler_block_by_func(self._on_channel_changed)
+            self._channel_row.set_selected(0)
+            self._channel_row.handler_unblock_by_func(self._on_channel_changed)
         for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
             if is_exp:
                 combo.set_visible(True)
