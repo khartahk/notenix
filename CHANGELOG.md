@@ -1,3 +1,9 @@
+## Unreleased
+
+### Fix
+
+- **dev**: use plain version_files for flake.nix; no search pattern needed
+
 ## v0.4.1 (2026-05-27)
 
 ### Fix
