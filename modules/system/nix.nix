@@ -54,6 +54,14 @@ in
         experimental-features = [ "nix-command" "flakes" ];
         trusted-users          = cfg.trustedUsers;
         auto-optimise-store    = cfg.autoOptimise;
+        substituters           = [
+          "https://cache.nixos.org"
+          "https://n1x05.cachix.org"
+        ];
+        trusted-public-keys    = [
+          "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+          "n1x05.cachix.org-1:4kwO30VlhXN3W/xDunzQ8//8B1eiZTtMoZ1RjSMMVcc="
+        ];
       };
 
       gc = lib.mkIf cfg.autoGC {
