@@ -863,6 +863,7 @@ class ChannelWindow(Adw.Window):
 
     def _on_reload_clicked(self, _btn):
         self._start_refresh()
+        self._start_release_check()
 
     def _dispatch_save(self, btn, label: str, rebuild: bool) -> None:
         payload    = self._collect_all_payload()
@@ -900,6 +901,14 @@ class ChannelWindow(Adw.Window):
         ).start()
 
     def _on_release_checked(self, newer: list[dict] | None) -> None:
+        # Always refresh the release dropdown — cache may have been updated
+        self._all_releases = _releases.get_all_releases()
+        self._release_ids  = ["_placeholder_"] + [r["tag_name"] for r in self._all_releases]
+        self._pinned_tag   = _releases.get_pinned_tag()
+        cur_sel = self._release_row.get_selected()
+        self._release_row.set_model(Gtk.StringList.new(self._build_release_labels()))
+        self._release_row.set_selected(self._release_selected_index() if cur_sel == 0 else cur_sel)
+
         if not newer:
             self._release_banner.set_revealed(False)
             return GLib.SOURCE_REMOVE
