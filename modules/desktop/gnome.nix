@@ -188,6 +188,10 @@ in
             sleep-inactive-battery-timeout = lib.gvariant.mkUint32 cfg.power.batterySleepTimeout;
           };
 
+          "org/gnome/desktop/wm/preferences" = {
+            button-layout = "appmenu:minimize,maximize,close";
+          };
+
           "org/gnome/shell/extensions/dash-to-dock" = {
             custom-theme-shrink = true;
             dash-max-icon-size  = lib.gvariant.mkUint32 42;

@@ -2,6 +2,7 @@
 
 ### Fix
 
+- **kanal**: sync flake.nix version to 0.2.2, add version_files to cz config
 - **releases**: filter draft releases; add KANAL_VERSION dev override; import os
 - **dev**: push lightweight tag explicitly; --follow-tags skips them
 
