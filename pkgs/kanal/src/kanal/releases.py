@@ -2,16 +2,17 @@
 
 Compares the tag currently pinned in the machine's flake.nix
 (inputs.notenix.url ?ref=vX.Y.Z) against the latest GitHub release.
-Falls back to comparing the installed kanal package version when no tag
-is pinned (e.g. branch-tracking channels).
+When no tag is pinned (branch-tracking), cache is still refreshed for
+the release dropdown but no update banner is shown.
 
 Public API
 ----------
 get_pinned_tag() -> Version | None
     Returns the version currently pinned in flake.nix, or None.
 check_update()   -> list[dict] | None
-    Returns a list of release dicts (tag_name, body, published_at) that are
-    newer than the pinned/installed version, or None on network/parse failure.
+    Refreshes the releases cache if stale, then returns releases newer
+    than the pinned tag.  Returns [] when branch-tracking (no pinned tag).
+    Returns None on unrecoverable error (no cache + network failed).
     Uses a local cache with ETag-based revalidation — no data transferred
     when nothing has changed on the server.
 """
@@ -19,16 +20,13 @@ check_update()   -> list[dict] | None
 from __future__ import annotations
 
 import json
-import os
+import re
 import time
 import urllib.error
 import urllib.request
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from packaging.version import InvalidVersion, Version
-
-import re
 
 import kanal.constants as _const
 
@@ -46,7 +44,7 @@ _HEADERS = {
 # How long a fresh cache is considered valid without revalidation (seconds).
 # ETag revalidation is always attempted regardless; this is the hard TTL for
 # offline / unreachable scenarios.
-_CACHE_TTL_SECS = 6 * 3600  # 6 hours
+_CACHE_TTL_SECS = 1 * 3600  # 1 hour
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +58,6 @@ def get_pinned_tag() -> Version | None:
     ``/vX.Y.Z`` suffix.  Returns None when tracking a branch.
     """
     try:
-        from pathlib import Path
         text = _const.LOCAL_FLAKE_PATH.read_text()
         for line in text.splitlines():
             t = line.strip()
@@ -72,28 +69,6 @@ def get_pinned_tag() -> Version | None:
     except Exception:
         pass
     return None
-
-
-def get_installed_version() -> Version | None:
-    """Return the installed kanal package version, or None if not installed.
-
-    Set KANAL_VERSION env var to override (useful for dev testing the banner).
-    """
-    override = os.environ.get("KANAL_VERSION")
-    if override:
-        try:
-            return Version(override)
-        except InvalidVersion:
-            pass
-    try:
-        return Version(version("kanal"))
-    except (PackageNotFoundError, InvalidVersion):
-        return None
-
-
-def _current_version() -> Version | None:
-    """Return pinned tag if set, else installed kanal version."""
-    return get_pinned_tag() or get_installed_version()
 
 
 # ---------------------------------------------------------------------------
@@ -179,18 +154,17 @@ def get_all_releases() -> list[dict]:
 
 
 def check_update() -> list[dict] | None:
-    """Return releases newer than the pinned/installed version, newest first.
+    """Refresh releases cache if stale; return releases newer than pinned tag.
 
-    Compares the tag in flake.nix (inputs.notenix.url ?ref=vX.Y.Z) against
-    GitHub releases.  Falls back to the kanal package version when no tag is
-    pinned (branch-tracking channels).
+    The source of truth for the current system version is the ``?ref=vX.Y.Z``
+    tag in ``/etc/nixos/flake.nix`` (inputs.notenix.url).  The kanal package
+    version is intentionally NOT used — it is unrelated to the deployed system.
 
-    Returns an empty list if up-to-date, None on unrecoverable error.
+    Returns:
+      - list of newer release dicts (possibly empty) when pinned to a tag
+      - empty list when branch-tracking (no pinned tag) — cache still refreshed
+      - None on unrecoverable error (no cache + network failed)
     """
-    current = _current_version()
-    if current is None:
-        return None
-
     cache = _load_cache()
     now = time.time()
 
@@ -198,19 +172,26 @@ def check_update() -> list[dict] | None:
     cached_releases = cache.get("releases") if cache else None
     fetched_at = cache.get("fetched_at", 0) if cache else 0
 
-    # Re-fetch if cache is stale (beyond TTL) or we have no data at all.
-    # ETag revalidation happens on every call regardless of TTL so we never
-    # use stale data when the server has something new.
-    if cached_releases is None or (now - fetched_at) > _CACHE_TTL_SECS:
-        fetched, new_etag = _fetch_releases(etag)
+    cache_stale = cached_releases is None or (now - fetched_at) > _CACHE_TTL_SECS
+
+    if cache_stale:
+        # Force full re-fetch on TTL expiry — don't send ETag, bypass CDN 304
+        fetched, new_etag = _fetch_releases(None)
         if fetched is not None:
-            # Fresh data received
             cached_releases = fetched
             etag = new_etag
             _save_cache(cached_releases, etag, now)
         elif cached_releases is None:
             return None  # no cache + no network
-        # else: 304 Not Modified — keep using cached_releases, don't update fetched_at
+        else:
+            # Network failed but we have stale cache — use it, reset TTL
+            _save_cache(cached_releases, etag, now)
+
+    # Determine pinned tag — the only reliable system version source
+    pinned = get_pinned_tag()
+    if pinned is None:
+        # Branch-tracking: cache refreshed above, no version comparison needed
+        return []
 
     newer: list[dict] = []
     for rel in cached_releases:
@@ -219,7 +200,7 @@ def check_update() -> list[dict] | None:
             rel_version = Version(tag.lstrip("v"))
         except InvalidVersion:
             continue
-        if rel_version > current and not rel.get("prerelease", False) and not rel.get("draft", False):
+        if rel_version > pinned and not rel.get("prerelease", False) and not rel.get("draft", False):
             newer.append({
                 "tag_name":     tag,
                 "body":         rel.get("body") or "",
