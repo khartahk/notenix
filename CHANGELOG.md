@@ -2,6 +2,7 @@
 
 ### Feat
 
+- show new updates when using releases
 - **nix**: add n1x05.cachix.org substituter and public key
 
 ## v0.4.2 (2026-05-27)
