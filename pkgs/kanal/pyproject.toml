@@ -26,7 +26,7 @@ testpaths = ["tests"]
 [tool.commitizen]
 version_provider         = "pep621"    # reads/writes [project].version
 tag_format               = "v$version"
-update_changelog_on_bump = true
+update_changelog_on_bump = false
 major_version_zero       = true        # 0.x.y: breaking changes bump minor not major
 changelog_file           = "../../CHANGELOG.md"
 version_files            = ["flake.nix"]
