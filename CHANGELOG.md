@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Refactor
+
+- **yaml**: sort features, extensions and apps alphabetically
+
+## v0.6.6 (2026-05-28)
+
 ## v0.6.5 (2026-05-28)
 
 ### Fix
