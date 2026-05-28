@@ -81,11 +81,11 @@ tabs:
     type: bool_options
     save_cmd: set-features
     items:
-      - key: notenix.features.ssh
-        id: ssh
-        const: SSH
-        title: SSH server
-        subtitle: "OpenSSH -- password auth, root login disabled"
+      - key: notenix.features.canonPrinter
+        id: canonPrinter
+        const: CANON_PRINTER
+        title: Canon printer
+        subtitle: "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
         default: false
 
       - key: notenix.features.kiosk
@@ -95,11 +95,11 @@ tabs:
         subtitle: "Auto-login, no screen lock"
         default: false
 
-      - key: notenix.features.rustdesk
-        id: rustdesk
-        const: RUSTDESK
-        title: RustDesk
-        subtitle: "Remote desktop -- allows controlling this machine remotely"
+      - key: notenix.features.logitechWireless
+        id: logitechWireless
+        const: LOGITECH_WIRELESS
+        title: Logitech Wireless
+        subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
         default: false
 
       - key: notenix.features.nvidia
@@ -109,18 +109,25 @@ tabs:
         subtitle: "Proprietary NVIDIA graphics drivers"
         default: false
 
-      - key: notenix.features.canonPrinter
-        id: canonPrinter
-        const: CANON_PRINTER
-        title: Canon printer
-        subtitle: "UFR II drivers for Canon LBP/MF series (e.g. LBP633CDW)"
+      - key: notenix.features.rustdesk
+        id: rustdesk
+        const: RUSTDESK
+        title: RustDesk
+        subtitle: "Remote desktop -- allows controlling this machine remotely"
         default: false
 
-      - key: notenix.features.zfs
-        id: zfs
-        const: ZFS
-        title: ZFS support
-        subtitle: "Enable ZFS kernel module for mounting ZFS pools"
+      - key: notenix.features.ssh
+        id: ssh
+        const: SSH
+        title: SSH server
+        subtitle: "OpenSSH -- password auth, root login disabled"
+        default: false
+
+      - key: notenix.features.steam
+        id: steam
+        const: STEAM
+        title: Steam
+        subtitle: "Valve Steam game client with hardware controller support"
         default: false
 
       - key: notenix.features.tailscale
@@ -133,18 +140,11 @@ tabs:
           type: gnome_extension
           value: tailscale-status
 
-      - key: notenix.features.logitechWireless
-        id: logitechWireless
-        const: LOGITECH_WIRELESS
-        title: Logitech Wireless
-        subtitle: "Solaar device manager + udev rules for Unifying/Bolt receivers"
-        default: false
-
-      - key: notenix.features.steam
-        id: steam
-        const: STEAM
-        title: Steam
-        subtitle: "Valve Steam game client with hardware controller support"
+      - key: notenix.features.zfs
+        id: zfs
+        const: ZFS
+        title: ZFS support
+        subtitle: "Enable ZFS kernel module for mounting ZFS pools"
         default: false
 
       - key: notenix.features.experimental
@@ -171,11 +171,6 @@ tabs:
         subtitle: "Customisable dock panel"
         default: true
 
-      - id: gsconnect
-        title: GSConnect
-        subtitle: "KDE Connect integration -- pair with Android"
-        default: true
-
       - id: gtk4-desktop-icons-ng-ding
         title: Desktop Icons NG
         subtitle: "Show files and folders on the desktop"
@@ -191,6 +186,11 @@ tabs:
           - id: upstream-main
             label: "Upstream main"
             fetch_url: "https://gitlab.com/smedius/desktop-icons-ng/-/archive/main/desktop-icons-ng-main.tar.gz"
+
+      - id: gsconnect
+        title: GSConnect
+        subtitle: "KDE Connect integration -- pair with Android"
+        default: true
 
       - id: tailscale-status
         title: Tailscale Status
@@ -209,14 +209,9 @@ tabs:
         subtitle: "Web browser"
         default: false
 
-      - id: org.signal.Signal
-        title: Signal
-        subtitle: "Encrypted messaging"
-        default: false
-
-      - id: org.nextcloud.Nextcloud
-        title: Nextcloud
-        subtitle: "Sync files and folders with Nextcloud"
+      - id: com.github.tchx84.Flatseal
+        title: Flatseal
+        subtitle: "Manage Flatpak permissions"
         default: false
 
       - id: org.libreoffice.LibreOffice
@@ -224,9 +219,9 @@ tabs:
         subtitle: "Full office suite -- Writer, Calc, Impress"
         default: false
 
-      - id: com.vscodium.codium
-        title: VSCodium
-        subtitle: "Code editor"
+      - id: org.nextcloud.Nextcloud
+        title: Nextcloud
+        subtitle: "Sync files and folders with Nextcloud"
         default: false
 
       - id: com.obsproject.Studio
@@ -234,17 +229,22 @@ tabs:
         subtitle: "Screen recording and streaming"
         default: false
 
+      - id: com.rustdesk.RustDesk
+        title: RustDesk
+        subtitle: "Remote desktop"
+        default: false
+
+      - id: org.signal.Signal
+        title: Signal
+        subtitle: "Encrypted messaging"
+        default: false
+
       - id: org.videolan.VLC
         title: VLC
         subtitle: "Media player"
         default: false
 
-      - id: com.github.tchx84.Flatseal
-        title: Flatseal
-        subtitle: "Manage Flatpak permissions"
-        default: false
-
-      - id: com.rustdesk.RustDesk
-        title: RustDesk
-        subtitle: "Remote desktop"
+      - id: com.vscodium.codium
+        title: VSCodium
+        subtitle: "Code editor"
         default: false
