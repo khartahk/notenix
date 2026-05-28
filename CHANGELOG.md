@@ -1,3 +1,9 @@
+## Unreleased
+
+### Fix
+
+- pressing reload now always checks for new versions
+
 ## v0.6.0 (2026-05-28)
 
 ### Feat
