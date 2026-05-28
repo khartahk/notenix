@@ -877,7 +877,7 @@ class ChannelWindow(Adw.Window):
 
     def _on_reload_clicked(self, _btn):
         self._start_refresh()
-        self._start_release_check()
+        self._start_release_check(force=True)
 
     def _dispatch_save(self, btn, label: str, rebuild: bool) -> None:
         payload    = self._collect_all_payload()
@@ -905,11 +905,11 @@ class ChannelWindow(Adw.Window):
 
     # ── Release notification ──────────────────────────────────────────────
 
-    def _start_release_check(self) -> None:
+    def _start_release_check(self, force: bool = False) -> None:
         """Fetch newer releases in the background; update banner when done."""
         threading.Thread(
             target=lambda: GLib.idle_add(
-                self._on_release_checked, _releases.check_update()
+                self._on_release_checked, _releases.check_update(force=force)
             ),
             daemon=True,
         ).start()

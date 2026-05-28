@@ -153,12 +153,15 @@ def get_all_releases() -> list[dict]:
     return result
 
 
-def check_update() -> list[dict] | None:
+def check_update(force: bool = False) -> list[dict] | None:
     """Refresh releases cache if stale; return releases newer than pinned tag.
 
     The source of truth for the current system version is the ``?ref=vX.Y.Z``
     tag in ``/etc/nixos/flake.nix`` (inputs.notenix.url).  The kanal package
     version is intentionally NOT used — it is unrelated to the deployed system.
+
+    Args:
+      force: bypass TTL and always re-fetch from GitHub (used by reload button).
 
     Returns:
       - list of newer release dicts (possibly empty) when pinned to a tag
@@ -172,7 +175,7 @@ def check_update() -> list[dict] | None:
     cached_releases = cache.get("releases") if cache else None
     fetched_at = cache.get("fetched_at", 0) if cache else 0
 
-    cache_stale = cached_releases is None or (now - fetched_at) > _CACHE_TTL_SECS
+    cache_stale = force or cached_releases is None or (now - fetched_at) > _CACHE_TTL_SECS
 
     if cache_stale:
         # Force full re-fetch on TTL expiry — don't send ETag, bypass CDN 304
