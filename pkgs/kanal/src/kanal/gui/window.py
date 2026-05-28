@@ -1018,9 +1018,23 @@ class ChannelWindow(Adw.Window):
                     lines.append(chunk)
             msg = f"Pinned to {tag}." if rc == 0 else f"Failed to pin {tag} (exit {rc})."
             err = None if rc == 0 else "\n".join(lines)
-            GLib.idle_add(self._show_result, msg, err)
+            GLib.idle_add(self._on_release_applied, tag, rc, msg, err)
 
         threading.Thread(target=_run, daemon=True).start()
+
+    def _on_release_applied(self, tag: str, rc: int, msg: str, err) -> None:
+        if rc == 0:
+            from packaging.version import Version
+            self._pinned_tag = Version(tag.lstrip("v"))
+            # Sync release dropdown to the newly pinned tag
+            tag_str = f"v{tag}" if not tag.startswith("v") else tag
+            if tag_str in self._release_ids:
+                idx = self._release_ids.index(tag_str)
+                self._release_row.handler_block_by_func(self._on_release_changed)
+                self._release_row.set_selected(idx)
+                self._release_row.handler_unblock_by_func(self._on_release_changed)
+            self._update_buttons()
+        self._show_result(msg, err)
 
     def _done_action(self, message: str, error: str | None, btn: Gtk.Button, label: str = "Save"):
         if not error:
