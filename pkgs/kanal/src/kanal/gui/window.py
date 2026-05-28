@@ -346,7 +346,7 @@ class ChannelWindow(Adw.Window):
             self._stack.add_titled(page, tab_id, _(tab["title"]))
 
         # ── Apply (header right) + Save (action bar) ──────────────────────
-        self._apply_btn = Gtk.Button(label=_("Update"))
+        self._apply_btn = Gtk.Button(label=_("Install"))
         self._apply_btn.add_css_class("suggested-action")
         self._apply_btn.add_css_class("pill")
         self._apply_btn.set_tooltip_text(_("Save all changes and rebuild"))
@@ -470,13 +470,29 @@ class ChannelWindow(Adw.Window):
             self._experimental_row.connect("notify::active", self._on_experimental_toggled)
 
     def _update_buttons(self) -> None:
-        """Save enabled only when dirty. Apply always enabled; label Apply/Update."""
+        """Install enabled when there is something meaningful to apply.
+
+        - Release track: enabled only when selected release differs from
+          the currently pinned tag (or any other setting changed).
+        - Branch track: enabled when any setting differs from saved state.
+        - Label is always 'Install'.
+        """
         changed = self._collect_all_payload() != self._initial_payload
+
+        # Check if a release is selected that differs from the pinned tag
+        rel_idx = self._release_row.get_selected()
+        selected_release = self._release_ids[rel_idx] if rel_idx > 0 and rel_idx < len(self._release_ids) else None
+        pinned = str(self._pinned_tag) if self._pinned_tag else None
+        pinned_tag_str = f"v{pinned}" if pinned and not pinned.startswith("v") else pinned
+        release_differs = selected_release is not None and selected_release != pinned_tag_str
+
+        branch_idx = self._channel_row.get_selected()
+        branch_selected = branch_idx > 0 and branch_idx < len(self._branch_ids)
+
+        apply_enabled = changed or release_differs or branch_selected
+        self._apply_btn.set_sensitive(apply_enabled)
+        self._apply_btn.set_label(_("Install"))
         self._save_btn.set_sensitive(changed)
-        self._apply_btn.set_label(_("Apply") if changed else _("Update"))
-        self._apply_btn.set_tooltip_text(
-            _("Save all changes and rebuild") if changed else _("Rebuild with current saved config")
-        )
 
     def _toast(self, message: str, timeout: int = 4) -> None:
         t = Adw.Toast.new(message)
@@ -881,7 +897,7 @@ class ChannelWindow(Adw.Window):
 
     def _dispatch_save(self, btn, label: str, rebuild: bool) -> None:
         payload    = self._collect_all_payload()
-        busy_label = _("Applying\u2026") if rebuild else _("Saving\u2026")
+        busy_label = _("Installing\u2026") if rebuild else _("Saving\u2026")
         success    = _("All changes saved and applied") if rebuild else _("All changes saved")
         dry_msg    = (
             f"[Dry run] Would save all & apply: {payload['channel']}, {payload['operation']}, {payload['preset']}"

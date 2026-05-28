@@ -55,8 +55,8 @@ msgid "Machine"
 msgstr "Naprava"
 
 #: src/kanal/gui/window.py:227 src/kanal/gui/window.py:335
-msgid "Update"
-msgstr "Nadgradi"
+msgid "Install"
+msgstr "Namesti"
 
 #: src/kanal/gui/window.py:230 src/kanal/gui/window.py:337
 msgid "Save all changes and rebuild"
@@ -74,14 +74,6 @@ msgstr "Zapiši spremembe v datoteke (brez obnove)"
 #: src/kanal/gui/window.py:504
 msgid "Show more"
 msgstr "Pokaži več"
-
-#: src/kanal/gui/window.py:335
-msgid "Apply"
-msgstr "Uveljavi"
-
-#: src/kanal/gui/window.py:337
-msgid "Rebuild with current saved config"
-msgstr "Obnovi s shranjeno konfiguracijo"
 
 #: src/kanal/gui/window.py:347
 msgid "Checking for updates…"
@@ -117,8 +109,8 @@ msgid "Save failed"
 msgstr "Shranjevanje ni uspelo"
 
 #: src/kanal/gui/window.py:558
-msgid "Applying…"
-msgstr "Uveljavljam…"
+msgid "Installing…"
+msgstr "Nameščam…"
 
 #: src/kanal/gui/window.py:558
 msgid "Saving…"
