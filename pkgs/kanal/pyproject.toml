@@ -24,9 +24,31 @@ kanal = ["*.yaml", "icons/hicolor/scalable/actions/*.svg"]
 testpaths = ["tests"]
 
 [tool.commitizen]
+name                     = "cz_customize"
 version_provider         = "pep621"    # reads/writes [project].version
 tag_format               = "v$version"
 update_changelog_on_bump = true
 major_version_zero       = true        # 0.x.y: breaking changes bump minor not major
 changelog_file           = "../../CHANGELOG.md"
 version_files            = ["flake.nix"]
+
+[tool.commitizen.customize]
+bump_pattern = "^(feat|fix|refactor|perf|chore|build)(\\(.+\\))?(!)?:"
+
+[tool.commitizen.customize.bump_map]
+"^feat"     = "MINOR"
+"^fix"      = "PATCH"
+"^refactor" = "PATCH"
+"^perf"     = "PATCH"
+"^chore"    = "PATCH"
+"^build"    = "PATCH"
+"^feat!|^fix!|^refactor!|BREAKING CHANGE" = "MAJOR"
+
+[tool.commitizen.customize.bump_map_major_version_zero]
+"^feat"     = "MINOR"
+"^fix"      = "PATCH"
+"^refactor" = "PATCH"
+"^perf"     = "PATCH"
+"^chore"    = "PATCH"
+"^build"    = "PATCH"
+"^feat!|^fix!|^refactor!|BREAKING CHANGE" = "MINOR"

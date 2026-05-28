@@ -43,13 +43,13 @@ _DEFAULT_PRESETS: list[dict] = [
 ]
 
 _DEFAULT_METADATA: dict = {
-    "flakeBase": "github:n1x05/notenix",
+    "flakeBase": _const.FLAKE_REF,
     "channels": {
-        "stable":   {"flake": "github:n1x05/notenix",          "label": "Stable releases",
+        "stable":   {"flake": _const.FLAKE_REF,                         "label": "Stable releases",
                      "default": True,  "experimental": False, "presets": _DEFAULT_PRESETS},
-        "main":     {"flake": "github:n1x05/notenix",          "label": "main (branch)",
+        "main":     {"flake": _const.FLAKE_REF,                         "label": "main (branch)",
                      "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
-        "unstable": {"flake": "github:n1x05/notenix/unstable", "label": "unstable (branch)",
+        "unstable": {"flake": f"{_const.FLAKE_REF}/unstable",          "label": "unstable (branch)",
                      "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
     },
 }
