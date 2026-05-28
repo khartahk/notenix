@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fix
+
+- **release**: use && chain in do-release to ensure cz changelog runs before git add
+
 ## v0.6.7 (2026-05-28)
 
 ### Refactor
