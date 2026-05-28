@@ -1,3 +1,9 @@
+## v0.6.11 (2026-05-28)
+
+### Fix
+
+- choosing to update to the latest version now properly sets the release selected in the dropdown and allow the user to click install
+
 ## v0.6.10 (2026-05-28)
 
 ### Fix
