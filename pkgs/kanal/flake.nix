@@ -25,7 +25,7 @@
       packages.${system} = {
         kanal = pkgs.python3Packages.buildPythonApplication {
           pname   = "kanal";
-          version = "0.6.8";
+          version = "0.6.9";
           src     = ./.;
           format  = "pyproject";
           nativeBuildInputs = with pkgs; [

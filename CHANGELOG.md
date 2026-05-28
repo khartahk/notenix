@@ -1,3 +1,9 @@
+## Unreleased
+
+### Fix
+
+- **release**: disable update_changelog_on_bump so cz bump never clobbers CHANGELOG
+
 ## v0.6.8 (2026-05-28)
 
 ### Fix
