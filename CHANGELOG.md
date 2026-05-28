@@ -1,3 +1,9 @@
+## Unreleased
+
+### Fix
+
+- install button now properly states what it's for
+
 ## v0.6.3 (2026-05-28)
 
 ## v0.6.2 (2026-05-28)
