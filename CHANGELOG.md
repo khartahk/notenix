@@ -1,3 +1,9 @@
+## v0.6.10 (2026-05-28)
+
+### Fix
+
+- **release**: remove update-changelog pre-commit hook; Makefile handles CHANGELOG
+
 ## v0.6.9 (2026-05-28)
 
 ### Fix
