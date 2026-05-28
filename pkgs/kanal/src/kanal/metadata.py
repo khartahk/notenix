@@ -15,6 +15,7 @@ refresh_metadata()  fetches fresh data from GitHub + nix eval, updates cache
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 import urllib.request
@@ -127,21 +128,29 @@ def presets_for(channel: str | None = None) -> list[str]:
 
 def _fetch_github_branches(owner_repo: str) -> tuple[list[str], str]:
     """Return ``(branch_names, default_branch)`` from the GitHub API."""
+    _token = os.environ.get("GITHUB_TOKEN", "")
     headers = {
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
+        **({"Authorization": f"Bearer {_token}"} if _token else {}),
     }
     repo_url   = f"https://api.github.com/repos/{owner_repo}"
     branch_url = f"https://api.github.com/repos/{owner_repo}/branches?per_page=100"
 
     req = urllib.request.Request(repo_url, headers=headers)
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        repo_info = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            repo_info = json.loads(resp.read())
+    except Exception:
+        repo_info = {}
     default_branch = repo_info.get("default_branch", "main")
 
     req = urllib.request.Request(branch_url, headers=headers)
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        branches = [b["name"] for b in json.loads(resp.read())]
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            branches = [b["name"] for b in json.loads(resp.read())]
+    except Exception:
+        branches = []
 
     return branches, default_branch
 

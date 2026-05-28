@@ -20,6 +20,7 @@ check_update()   -> list[dict] | None
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -35,10 +36,12 @@ import kanal.constants as _const
 # ---------------------------------------------------------------------------
 
 _RELEASES_URL = "https://api.github.com/repos/n1x05/notenix/releases?per_page=20"
+_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 _HEADERS = {
     "Accept": "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "kanal/notenix",
+    **({"Authorization": f"Bearer {_TOKEN}"} if _TOKEN else {}),
 }
 
 # How long a fresh cache is considered valid without revalidation (seconds).
