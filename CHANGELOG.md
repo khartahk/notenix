@@ -2,6 +2,12 @@
 
 ### Feat
 
+- show kanal rev when not using release version
+
+## v0.5.0 (2026-05-28)
+
+### Feat
+
 - show new updates when using releases
 - **nix**: add n1x05.cachix.org substituter and public key
 

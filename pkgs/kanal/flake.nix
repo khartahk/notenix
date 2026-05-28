@@ -49,6 +49,8 @@
             wrapProgram $out/bin/kanal \
               --set KANALCTL_BIN $out/bin/kanalctl \
               --set KANAL_FLAKE_REF "${self.lib.kanal.flakeBase}" \
+              --set KANAL_BUILD_REV "${if self ? rev then self.shortRev else self.dirtyShortRev}" \
+              --set KANAL_BUILD_CLEAN "${if self ? rev then "1" else "0"}" \
               --set KANAL_LOCALE_SUPPORTED "${pkgs.glibc}/share/i18n/SUPPORTED" \
               --set KANAL_XKB_EVDEV_XML "${pkgs.xorg.xkeyboardconfig}/share/X11/xkb/rules/evdev.xml" \
               --set TEXTDOMAINDIR $out/share/locale \

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import importlib.resources
+import os
 import sys
 import threading
 
@@ -52,7 +54,19 @@ class ChannelWindow(Adw.Window):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_title("kanal")
+        try:
+            _ver = importlib.metadata.version("kanal")
+        except importlib.metadata.PackageNotFoundError:
+            _ver = None
+        _build_rev   = os.environ.get("KANAL_BUILD_REV")
+        _build_clean = os.environ.get("KANAL_BUILD_CLEAN") == "1"
+        if _ver and _build_rev and not _build_clean:
+            _title = f"Kanal {_ver}-{_build_rev}"
+        elif _ver:
+            _title = f"Kanal {_ver}"
+        else:
+            _title = "Kanal"
+        self.set_title(_title)
         self.set_default_size(700, 500)
 
         meta    = backend.load_metadata()
