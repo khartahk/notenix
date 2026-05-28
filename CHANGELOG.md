@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Fix
+
+- **release**: split cz bump and cz changelog to ensure versioned notes are written
+
 ## v0.6.4 (2026-05-28)
 
 ### Fix
