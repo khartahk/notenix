@@ -15,8 +15,8 @@ CZ = cd pkgs/kanal && cz
 # All release logic in one shell context so $$tag is read after bump.
 define do-release
 	$(CZ) bump --files-only $(1)
-	$(CZ) changelog
 	@tag=$$(grep '^version' pkgs/kanal/pyproject.toml | head -1 | awk -F'"' '{print $$2}'); \
+	cd pkgs/kanal && cz changelog --unreleased-version "v$$tag"; cd ../..; \
 	git add -A; \
 	git commit -m "bump: version → v$$tag"; \
 	git tag "v$$tag"; \
