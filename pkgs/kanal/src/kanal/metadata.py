@@ -48,7 +48,7 @@ _DEFAULT_METADATA: dict = {
     "channels": {
         "stable":   {"flake": _const.FLAKE_REF,                         "label": "Stable releases",
                      "default": True,  "experimental": False, "presets": _DEFAULT_PRESETS},
-        "main":     {"flake": _const.FLAKE_REF,                         "label": "main (branch)",
+        "main":     {"flake": f"{_const.FLAKE_REF}/main",              "label": "main (branch)",
                      "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
         "unstable": {"flake": f"{_const.FLAKE_REF}/unstable",          "label": "unstable (branch)",
                      "default": False, "experimental": True,  "presets": _DEFAULT_PRESETS},
