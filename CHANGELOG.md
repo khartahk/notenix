@@ -1,3 +1,15 @@
+## v0.7.0 (2026-05-31)
+
+### Feat
+
+- **graphics**: enable hardware.graphics unconditionally for AMD/Intel/NVIDIA
+- **features**: add swap feature (4 GiB swapfile + zramSwap, enabled by default)
+
+### Fix
+
+- **kanal**: give main branch explicit /main URL to fix dropdown readback
+- **api**: pass GITHUB_TOKEN auth header to avoid rate limiting
+
 ## v0.6.11 (2026-05-28)
 
 ### Fix
