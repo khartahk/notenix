@@ -197,8 +197,7 @@ def refresh_metadata(callback=None) -> None:
         }
         # Branch-tracking channels (experimental)
         for branch in branches:
-            is_default_branch = (branch == default_br)
-            flake_url  = flake_base if is_default_branch else f"{flake_base}/{branch}"
+            flake_url  = f"{flake_base}/{branch}"
             presets    = _fetch_branch_presets(flake_url, fallback)
             ch_map[branch] = {
                 "flake":        flake_url,

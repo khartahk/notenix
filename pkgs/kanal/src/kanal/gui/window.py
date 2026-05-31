@@ -134,27 +134,27 @@ class ChannelWindow(Adw.Window):
         self._release_row.set_selected(self._release_selected_index())
         main_group.add(self._release_row)
 
-        # ── Branch dropdown (experimental only) ───────────────────────
-        # Only main, unstable, feat/* branches
-        self._branch_ids = [""] + [
+        # ── Branch dropdown (always visible) ──────────────────────────
+        # index 0 = stable (always present, locked when !experimental); index 1+ = dev branches
+        self._branch_ids = ["stable"] + [
             k for k, v in self._channel_meta.items()
             if v.get("experimental", False)
             and (k in ("main", "unstable") or k.startswith("feat/"))
         ]
-        branch_labels = [_("— select branch —")] + [
+        branch_labels = [_("Stable")] + [
             self._branch_label(k) for k in self._branch_ids[1:]
         ]
 
         # Determine current branch selection
-        _cur_branch = status.channel if status.channel in self._branch_ids else ""
-        _branch_sel = self._branch_ids.index(_cur_branch) if _cur_branch in self._branch_ids else 0
+        _cur_branch = status.channel if status.channel in self._branch_ids else "stable"
+        _branch_sel = self._branch_ids.index(_cur_branch)
 
         self._channel_row = Adw.ComboRow()
         self._channel_row.set_title(_("Branch"))
         self._channel_row.set_subtitle(_("Track a development branch instead of a release"))
         self._channel_row.set_model(Gtk.StringList.new(branch_labels))
         self._channel_row.set_selected(_branch_sel)
-        self._channel_row.set_visible(_is_exp_init)
+        self._channel_row.set_sensitive(_is_exp_init)
         main_group.add(self._channel_row)
 
         # ── Channel IDs still needed for preset/payload logic ─────────
@@ -714,14 +714,14 @@ class ChannelWindow(Adw.Window):
         idx    = self._preset_row.get_selected()
         preset = self._preset_ids[idx] if idx < len(self._preset_ids) else (self._preset_ids[0] if self._preset_ids else "desktop")
 
-        # Branch takes priority
+        # Experimental branch takes priority (index 0 is stable — skip it)
         branch_idx = self._channel_row.get_selected()
         if branch_idx > 0 and branch_idx < len(self._branch_ids):
             branch    = self._branch_ids[branch_idx]
             flake_url = self._channel_meta.get(branch, {}).get("flake", "")
             return branch, op, preset, flake_url
 
-        # Release selected (index 0 is placeholder — skip it)
+        # Stable track: use pinned release if one is selected
         rel_idx = self._release_row.get_selected()
         if rel_idx > 0 and rel_idx < len(self._release_ids):
             tag       = self._release_ids[rel_idx]
@@ -865,11 +865,11 @@ class ChannelWindow(Adw.Window):
         self._apply_experimental_effects(is_exp)
 
     def _apply_experimental_effects(self, is_exp: bool) -> None:
-        """Apply visibility side-effects of the experimental toggle."""
-        # Branch picker only in experimental
-        self._channel_row.set_visible(is_exp)
+        """Apply side-effects of the experimental toggle."""
+        # Branch row always visible; sensitive only when experimental is on
+        self._channel_row.set_sensitive(is_exp)
         if not is_exp:
-            # Reset branch to placeholder so release is active
+            # Reset branch to Stable (index 0)
             self._channel_row.handler_block_by_func(self._on_channel_changed)
             self._channel_row.set_selected(0)
             self._channel_row.handler_unblock_by_func(self._on_channel_changed)
