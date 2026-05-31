@@ -146,14 +146,28 @@ def save_machine(settings: dict[str, str]) -> None:
     _write_machine(contents, "machine settings")
 
 
+# Default values from the feature catalog (default: true features start enabled).
+_FEATURE_DEFAULTS: dict[str, bool] = {
+    f["key"]: bool(f.get("default", False)) for f in _const.FEATURE_CATALOG
+}
+
+
 def read_features() -> dict[str, bool]:
-    """Return ``{KEY_FEATURE_*: bool}`` from machine.nix (no root required)."""
-    result = {k: False for k in _const.ALL_FEATURES}
+    """Return ``{KEY_FEATURE_*: bool}`` from machine.nix.
+
+    Features absent from machine.nix fall back to the catalog default so that
+    features with ``default: true`` (e.g. swap) appear enabled until the user
+    explicitly disables them.
+    """
+    result = dict(_FEATURE_DEFAULTS)
     if _const.MACHINE_PATH.exists():
         contents = _const.MACHINE_PATH.read_text()
         for k in _const.ALL_FEATURES:
-            if _get_value(contents, k) == "true":
+            raw = _get_value(contents, k)
+            if raw == "true":
                 result[k] = True
+            elif raw == "false":
+                result[k] = False
     return result
 
 
@@ -161,10 +175,12 @@ def save_features(features: dict[str, bool]) -> None:
     """Write feature flags to machine.nix (must be called as root)."""
     contents = _load_machine()
     for key, enabled in features.items():
-        if enabled:
-            contents = _upsert_bool(contents, key, True)
-        else:
+        default_on = _FEATURE_DEFAULTS.get(key, False)
+        if enabled == default_on:
+            # Value matches catalog default — remove explicit override.
             contents = _remove_key(contents, key)
+        else:
+            contents = _upsert_bool(contents, key, enabled)
 
     # Apply extra side-effects declared in the feature catalog.
     for feat in _const.FEATURE_CATALOG:
