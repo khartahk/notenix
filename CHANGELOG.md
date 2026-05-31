@@ -1,3 +1,10 @@
+## v0.8.0 (2026-05-31)
+
+### Feat
+
+- **kanal**: show commit hash in title for non-release builds only
+- **kanal**: move update banner below title bar; add KANAL_PINNED_TAG test override
+
 ## v0.7.1 (2026-05-31)
 
 ### Fix
