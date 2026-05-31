@@ -14,6 +14,7 @@ CZ = cd pkgs/kanal && cz
 
 # All release logic in one shell context so $$tag is read after bump.
 define do-release
+	@git checkout main && git pull origin main && git merge --ff-only unstable || { echo "ERROR: could not fast-forward main from unstable"; exit 1; }
 	$(CZ) bump --files-only $(1)
 	@tag=$$(grep '^version' pkgs/kanal/pyproject.toml | head -1 | awk -F'"' '{print $$2}'); \
 	cd pkgs/kanal && cz changelog --unreleased-version "v$$tag" && cd ../.. && \
