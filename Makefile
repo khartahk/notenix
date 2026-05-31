@@ -33,7 +33,7 @@ define do-release
 	git add -A; \
 	git commit -m "bump: version → v$$tag"; \
 	git tag "v$$tag"; \
-	sed -i 's/IS_RELEASE = True/IS_RELEASE = False/' pkgs/kanal/src/kanal/_build_info.py; \
+	git checkout pkgs/kanal/src/kanal/_build_info.py; \
 	git push origin HEAD "v$$tag"; \
 	echo "Waiting for GitHub mirror to sync tag v$$tag…"; \
 	for i in 1 2 3 4 5 6 7 8 9 10; do \
