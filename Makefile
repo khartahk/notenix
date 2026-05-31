@@ -42,7 +42,9 @@ define do-release
 	done; \
 	notes=$$(awk "/^## v$$tag /{found=1; next} found && /^## /{exit} found{print}" CHANGELOG.md); \
 	echo "Creating GitHub release v$$tag…"; \
-	printf '%s\n' "$$notes" | gh release create "v$$tag" --repo n1x05/notenix --title "v$$tag" --notes-file -
+	printf '%s\n' "$$notes" | gh release create "v$$tag" --repo n1x05/notenix --title "v$$tag" --notes-file -; \
+	echo "Rebasing unstable onto main…"; \
+	git checkout unstable && git rebase main && git push --force-with-lease origin unstable
 endef
 
 # Auto-detect bump level from conventional commits since last tag.
