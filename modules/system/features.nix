@@ -70,6 +70,12 @@ in
       default     = false;
       description = "Enable Steam game client with hardware controller support.";
     };
+
+    swap = mkOption {
+      type        = types.bool;
+      default     = true;
+      description = "Enable a 4 GiB swapfile and zram compressed swap.";
+    };
   };
 
   config = mkMerge [
@@ -154,6 +160,17 @@ in
       environment.systemPackages = mkIf config.notenix.desktop.gnome.enable [
         pkgs.gnomeExtensions.tailscale-status
       ];
+    })
+
+    (mkIf cfg.swap {
+      swapDevices = [{
+        device = "/var/lib/swapfile";
+        size   = 4 * 1024;  # 4 GiB in MiB
+      }];
+      zramSwap = {
+        enable    = true;
+        algorithm = "zstd";
+      };
     })
   ];
 }

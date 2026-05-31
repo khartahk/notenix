@@ -130,6 +130,13 @@ tabs:
         subtitle: "Valve Steam game client with hardware controller support"
         default: false
 
+      - key: notenix.features.swap
+        id: swap
+        const: SWAP
+        title: Swap
+        subtitle: "4 GiB swapfile + zram compressed swap"
+        default: true
+
       - key: notenix.features.tailscale
         id: tailscale
         const: TAILSCALE
