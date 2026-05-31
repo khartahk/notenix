@@ -552,16 +552,16 @@ class ChannelWindow(Adw.Window):
         self._channel_meta = new_meta["channels"]
 
         cur_branch_idx = self._channel_row.get_selected()
-        cur_branch     = self._branch_ids[cur_branch_idx] if cur_branch_idx < len(self._branch_ids) else ""
+        cur_branch     = self._branch_ids[cur_branch_idx] if cur_branch_idx < len(self._branch_ids) else "stable"
         cur_preset     = self._preset_ids[self._preset_row.get_selected()] if getattr(self, "_preset_ids", None) else None
 
-        # Rebuild branch list (main, unstable, feat/* only)
-        self._branch_ids = [""] + [
+        # Rebuild branch list (stable at index 0, then main/unstable/feat/*)
+        self._branch_ids = ["stable"] + [
             k for k, v in self._channel_meta.items()
             if v.get("experimental", False)
             and (k in ("main", "unstable") or k.startswith("feat/"))
         ]
-        branch_labels = [_("— select branch —")] + [
+        branch_labels = [_("Stable")] + [
             self._branch_label(k) for k in self._branch_ids[1:]
         ]
         self._channel_row.set_model(Gtk.StringList.new(branch_labels))
