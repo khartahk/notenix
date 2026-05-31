@@ -1,3 +1,9 @@
+## v0.8.1 (2026-06-01)
+
+### Fix
+
+- **channel**: branch dropdown always visible, fix main branch restore on reopen
+
 ## v0.8.0 (2026-05-31)
 
 ### Feat
