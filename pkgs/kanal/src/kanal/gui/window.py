@@ -67,7 +67,7 @@ class ChannelWindow(Adw.Window):
         else:
             _title = "Kanal"
         self.set_title(_title)
-        self.set_default_size(700, 500)
+        self.set_default_size(820, 620)
 
         meta    = backend.load_metadata()
         status  = backend.read_status()
@@ -82,6 +82,8 @@ class ChannelWindow(Adw.Window):
         self._ext_source_rows: dict[str, tuple] = {}
         # Reference to the experimental feature SwitchRow (wired after tab rendering)
         self._experimental_row: Adw.SwitchRow | None = None
+        # Sidebar bottom toggle (kept in sync with _experimental_row)
+        self._exp_sidebar_switch: Gtk.Switch | None = None
 
         # ── Header bar ────────────────────────────────────────────────────
         self._reload_btn = Gtk.Button()
@@ -365,7 +367,35 @@ class ChannelWindow(Adw.Window):
         # ── Layout ────────────────────────────────────────────────────────
         sidebar = Gtk.StackSidebar()
         sidebar.set_stack(self._stack)
-        sidebar.set_size_request(160, -1)
+        sidebar.set_vexpand(True)
+        sidebar.set_hexpand(False)
+
+        # Experimental toggle pinned to sidebar bottom
+        self._exp_sidebar_switch = Gtk.Switch()
+        self._exp_sidebar_switch.set_active(_is_exp_init)
+        self._exp_sidebar_switch.set_valign(Gtk.Align.CENTER)
+
+        exp_label = Gtk.Label(label=_("Experimental"))
+        exp_label.set_xalign(0.0)
+        exp_label.add_css_class("caption")
+        exp_label.set_hexpand(True)
+
+        exp_toggle_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        exp_toggle_row.set_margin_start(12)
+        exp_toggle_row.set_margin_end(12)
+        exp_toggle_row.set_margin_top(8)
+        exp_toggle_row.set_margin_bottom(8)
+        exp_toggle_row.append(exp_label)
+        exp_toggle_row.append(self._exp_sidebar_switch)
+
+        sidebar_sep = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+
+        sidebar_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        sidebar_pane.set_size_request(160, -1)
+        sidebar_pane.set_hexpand(False)
+        sidebar_pane.append(sidebar)
+        sidebar_pane.append(sidebar_sep)
+        sidebar_pane.append(exp_toggle_row)
 
         sep = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
 
@@ -376,7 +406,7 @@ class ChannelWindow(Adw.Window):
         content_scroll.set_propagate_natural_height(True)
 
         content_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        content_box.append(sidebar)
+        content_box.append(sidebar_pane)
         content_box.append(sep)
         content_box.append(content_scroll)
 
@@ -414,15 +444,6 @@ class ChannelWindow(Adw.Window):
         log_box.append(show_more_box)
         log_box.append(self._log_revealer)
 
-        toolbar_view = Adw.ToolbarView()
-        toolbar_view.add_top_bar(header)
-        toolbar_view.set_content(content_box)
-        toolbar_view.add_bottom_bar(action_bar)
-        toolbar_view.add_bottom_bar(log_box)
-
-        self._toast_overlay = Adw.ToastOverlay()
-        self._toast_overlay.set_child(toolbar_view)
-
         # ── Release banner (hidden until an update is found) ───────────────
         self._release_banner = Adw.Banner()
         self._release_banner.set_revealed(False)
@@ -430,10 +451,17 @@ class ChannelWindow(Adw.Window):
         self._release_banner.connect("button-clicked", self._on_release_banner_clicked)
         self._release_newer: list[dict] = []
 
-        outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        outer_box.append(self._release_banner)
-        outer_box.append(self._toast_overlay)
-        self.set_content(outer_box)
+        toolbar_view = Adw.ToolbarView()
+        toolbar_view.add_top_bar(header)
+        toolbar_view.add_top_bar(self._release_banner)
+        toolbar_view.set_content(content_box)
+        toolbar_view.add_bottom_bar(action_bar)
+        toolbar_view.add_bottom_bar(log_box)
+
+        self._toast_overlay = Adw.ToastOverlay()
+        self._toast_overlay.set_child(toolbar_view)
+
+        self.set_content(self._toast_overlay)
 
         self._initial_payload = self._collect_all_payload()
         self._connect_change_signals()
@@ -468,6 +496,9 @@ class ChannelWindow(Adw.Window):
         # Wire experimental toggle → show/hide source pickers
         if self._experimental_row:
             self._experimental_row.connect("notify::active", self._on_experimental_toggled)
+        # Wire sidebar experimental switch (kept in sync with features tab row)
+        if self._exp_sidebar_switch:
+            self._exp_sidebar_switch.connect("notify::active", self._on_exp_sidebar_switched)
 
     def _update_buttons(self) -> None:
         """Install enabled when there is something meaningful to apply.
@@ -813,9 +844,28 @@ class ChannelWindow(Adw.Window):
 
     # ── Callbacks ─────────────────────────────────────────────────────────
 
+    def _on_exp_sidebar_switched(self, switch: Gtk.Switch, _param) -> None:
+        """Sidebar experimental toggle changed — sync features tab row and apply effects."""
+        is_exp = switch.get_active()
+        if self._experimental_row:
+            self._experimental_row.handler_block_by_func(self._on_experimental_toggled)
+            self._experimental_row.set_active(is_exp)
+            self._experimental_row.handler_unblock_by_func(self._on_experimental_toggled)
+        self._apply_experimental_effects(is_exp)
+        self._update_buttons()
+
     def _on_experimental_toggled(self, row: Adw.SwitchRow, _param) -> None:
         """Show/hide branch row and source pickers; reset when experimental disabled."""
         is_exp = row.get_active()
+        # Sync sidebar switch
+        if self._exp_sidebar_switch:
+            self._exp_sidebar_switch.handler_block_by_func(self._on_exp_sidebar_switched)
+            self._exp_sidebar_switch.set_active(is_exp)
+            self._exp_sidebar_switch.handler_unblock_by_func(self._on_exp_sidebar_switched)
+        self._apply_experimental_effects(is_exp)
+
+    def _apply_experimental_effects(self, is_exp: bool) -> None:
+        """Apply visibility side-effects of the experimental toggle."""
         # Branch picker only in experimental
         self._channel_row.set_visible(is_exp)
         if not is_exp:

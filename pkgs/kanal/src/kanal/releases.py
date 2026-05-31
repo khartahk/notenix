@@ -59,7 +59,15 @@ def get_pinned_tag() -> Version | None:
 
     Reads ``inputs.notenix.url`` and extracts the ``?ref=vX.Y.Z`` or
     ``/vX.Y.Z`` suffix.  Returns None when tracking a branch.
+
+    Override for testing: set ``KANAL_PINNED_TAG=v0.1.0`` to fake a low version.
     """
+    override = os.environ.get("KANAL_PINNED_TAG")
+    if override:
+        try:
+            return Version(override.lstrip("v"))
+        except Exception:
+            pass
     try:
         text = _const.LOCAL_FLAKE_PATH.read_text()
         for line in text.splitlines():
