@@ -58,9 +58,9 @@ class ChannelWindow(Adw.Window):
             _ver = importlib.metadata.version("kanal")
         except importlib.metadata.PackageNotFoundError:
             _ver = None
-        _build_rev   = os.environ.get("KANAL_BUILD_REV")
-        _build_clean = os.environ.get("KANAL_BUILD_CLEAN") == "1"
-        if _ver and _build_rev and not _build_clean:
+        _build_rev  = os.environ.get("KANAL_BUILD_REV")
+        from kanal import _build_info
+        if _ver and _build_rev and not _build_info.IS_RELEASE:
             _title = f"Kanal {_ver}-{_build_rev}"
         elif _ver:
             _title = f"Kanal {_ver}"

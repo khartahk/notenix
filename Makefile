@@ -17,9 +17,11 @@ define do-release
 	$(CZ) bump --files-only $(1)
 	@tag=$$(grep '^version' pkgs/kanal/pyproject.toml | head -1 | awk -F'"' '{print $$2}'); \
 	cd pkgs/kanal && cz changelog --unreleased-version "v$$tag" && cd ../.. && \
+	sed -i 's/IS_RELEASE = False/IS_RELEASE = True/' pkgs/kanal/src/kanal/_build_info.py; \
 	git add -A; \
 	git commit -m "bump: version → v$$tag"; \
 	git tag "v$$tag"; \
+	sed -i 's/IS_RELEASE = True/IS_RELEASE = False/' pkgs/kanal/src/kanal/_build_info.py; \
 	git push origin HEAD "v$$tag"; \
 	echo "Waiting for GitHub mirror to sync tag v$$tag…"; \
 	for i in 1 2 3 4 5 6 7 8 9 10; do \
