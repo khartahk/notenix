@@ -1,3 +1,9 @@
+## v0.8.2 (2026-06-01)
+
+### Fix
+
+- **channel**: fix branch dropdown reset to placeholder on metadata refresh
+
 ## v0.8.1 (2026-06-01)
 
 ### Fix
