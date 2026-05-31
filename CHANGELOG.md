@@ -1,3 +1,9 @@
+## v0.7.1 (2026-05-31)
+
+### Fix
+
+- **kanal**: use catalog defaults in read_features; write explicit false for default-on features
+
 ## v0.7.0 (2026-05-31)
 
 ### Feat
