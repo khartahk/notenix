@@ -79,6 +79,15 @@ in
   };
 
   config = mkMerge [
+    # Enable 3D acceleration for all GPU types (AMD/Intel/NVIDIA open).
+    # Mesa selects the correct driver (radeonsi, iris, nouveau) automatically.
+    {
+      hardware.graphics = {
+        enable      = true;
+        enable32Bit = true;
+      };
+    }
+
     (mkIf cfg.ssh {
       services.openssh = {
         enable                          = true;
