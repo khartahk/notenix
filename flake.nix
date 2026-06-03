@@ -14,6 +14,14 @@
     let
       system = "x86_64-linux";
       lib = nixpkgs.lib;
+      baseModules = [
+        self.nixosModules.default
+        disko.nixosModules.disko
+        ./hosts/notenix/configuration.nix
+        ./hosts/notenix/disk.nix
+        { environment.systemPackages = [ self.packages.${system}.kanal ]; }
+        { _module.args.pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; }; }
+      ];
     in
     {
       # ---------------------------------------------------------------------------
@@ -37,14 +45,7 @@
       # ---------------------------------------------------------------------------
       lib.mkMachineSystem = { modules ? [] }: lib.nixosSystem {
         inherit system;
-        modules = [
-          self.nixosModules.default
-          disko.nixosModules.disko
-          ./hosts/notenix/configuration.nix
-          ./hosts/notenix/disk.nix
-          { environment.systemPackages = [ self.packages.${system}.kanal ]; }
-          { _module.args.pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; }; }
-        ] ++ modules;
+        modules = baseModules ++ modules;
       };
 
       # ---------------------------------------------------------------------------
@@ -53,18 +54,7 @@
       #   - vm-headless: quick headless smoke-test VM
       #   - vm-gnome:    full GNOME desktop VM (needs QEMU with a display)
       # ---------------------------------------------------------------------------
-      nixosConfigurations =
-        let
-          baseModules = [
-            ./modules
-            disko.nixosModules.disko
-            ./hosts/notenix/configuration.nix
-            ./hosts/notenix/disk.nix
-            { environment.systemPackages = [ self.packages.${system}.kanal ]; }
-            { _module.args.pkgs-unstable = import nixpkgs-unstable { inherit system; config.allowUnfree = true; }; }
-          ];
-        in
-        {
+      nixosConfigurations = {
           notenix = lib.nixosSystem {
             inherit system;
             modules = baseModules;
