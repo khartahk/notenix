@@ -51,7 +51,7 @@
               --set KANAL_FLAKE_REF "${self.lib.kanal.flakeBase}" \
               --set KANAL_BUILD_REV "${if self ? rev then self.shortRev else self.dirtyShortRev}" \
               --set KANAL_LOCALE_SUPPORTED "${pkgs.glibc}/share/i18n/SUPPORTED" \
-              --set KANAL_XKB_EVDEV_XML "${pkgs.xorg.xkeyboardconfig}/share/X11/xkb/rules/evdev.xml" \
+              --set KANAL_XKB_EVDEV_XML "${pkgs.xkeyboard-config}/share/X11/xkb/rules/evdev.xml" \
               --set TEXTDOMAINDIR $out/share/locale \
               --set LOCALE_ARCHIVE "${pkgs.glibcLocalesUtf8}/lib/locale/locale-archive"
           '';
