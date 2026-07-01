@@ -75,6 +75,23 @@ notenix.hardware.sound.enable           = true;
 | `vm-headless` | Minimal headless VM for smoke-testing (user: `user` / pass: `notenix`) |
 | `vm-gnome` | Full GNOME desktop VM for visual/interactive testing |
 
+## Service debugging (small-first)
+
+Use shortest reproducible path.
+
+1. Locate option + module
+  - Check host `hosts/<name>/configuration.nix`.
+  - Check module under `modules/**` for option behavior.
+2. Check runtime unit
+  - `systemctl status <unit>`
+  - `journalctl -u <unit> -n 200 --no-pager`
+3. Check dependency chain
+  - Timers, sockets, targets, reverse proxy (if used).
+4. Check app-native logs/tools
+  - Prefer native CLI status command when available.
+5. Close minimal
+  - Cause, smallest fix, single verify command.
+
 Run VMs:
 ```bash
 nix run .#vm          # headless
