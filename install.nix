@@ -4,6 +4,7 @@
 
 let
   pkgs = nixpkgs.legacyPackages.${system};
+  notenixRef = self.sourceInfo.rev or self.rev or "main";
 in
 pkgs.writeShellApplication {
   name = "notenix-install";
@@ -146,7 +147,7 @@ pkgs.writeShellApplication {
 
     cat > "$TMP/etc/nixos/flake.nix" <<FLAKE
 {
-  inputs.notenix.url = "github:n1x05/notenix/${self.rev}";
+  inputs.notenix.url = "github:n1x05/notenix/${notenixRef}";
   outputs = { notenix, ... }: {
     nixosConfigurations.notenix =
       notenix.lib.mkMachineSystem { modules = [ ./machine.nix ]; };
