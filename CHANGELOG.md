@@ -1,3 +1,14 @@
+## Unreleased
+
+### Feat
+
+- update flake.lock
+- update flake.lock, minor fix for nix flake check
+
+### Refactor
+
+- **flake**: deduplicate shared NixOS module stack
+
 ## v0.8.3 (2026-06-01)
 
 ## v0.8.2 (2026-06-01)
