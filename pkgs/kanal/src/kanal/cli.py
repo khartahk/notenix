@@ -138,9 +138,12 @@ def _cmd_save_all(args: argparse.Namespace) -> int:
     for tab in backend.TAB_CATALOG:
         if tab["type"] == "bool_options":
             json_val = getattr(args, f"{tab['id']}_json", None)
-            tab_args[tab["save_cmd"]] = json.loads(json_val) if json_val else {}
+            if json_val is not None:
+                tab_args[tab["save_cmd"]] = json.loads(json_val)
         else:
-            tab_args[tab["save_cmd"]] = getattr(args, tab["id"], None) or []
+            value = getattr(args, tab["id"], None)
+            if value is not None:
+                tab_args[tab["save_cmd"]] = value
     settings    = _collect_machine(args)
     ext_sources = json.loads(args.ext_sources_json or "{}")
     ext_hashes  = json.loads(args.ext_hashes_json  or "{}")

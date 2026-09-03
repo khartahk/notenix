@@ -99,6 +99,101 @@ Your desktop will appear after a short setup. On the first login, any apps decla
 
 ---
 
+## Alternative: Manual installation
+
+If the interactive installer fails (e.g., NVMe not detected, or you prefer full control), use this manual path.
+
+### Step 1 — Create a disk config
+
+```bash
+cat > nvme-disk.nix << 'EOF'
+{
+  disko.devices = {
+    disk.main = {
+      device = "/dev/nvme0n1";  # your NVMe drive
+      type = "disk";
+      content = {
+        type = "gpt";
+        partitions = {
+          ESP = {
+            size = "512M";
+            type = "EF00";
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot";
+              mountOptions = [ "umask=0077" ];
+            };
+          };
+          root = {
+            size = "100%";
+            content = {
+              type = "filesystem";
+              format = "ext4";
+              mountpoint = "/";
+            };
+          };
+        };
+      };
+    };
+  };
+}
+EOF
+```
+
+### Step 2 — Partition and format the disk
+
+```bash
+sudo nix run github:nix-community/disko/latest \
+  --extra-experimental-features "nix-command flakes" \
+  -- --mode disko --root-mountpoint /mnt nvme-disk.nix
+```
+
+### Step 3 — Create a machine config
+
+```bash
+cat > machine.nix << 'EOF'
+# /etc/nixos/machine.nix — machine-specific NixOS configuration.
+# kanal rewrites notenix.preset when you change profile in the app.
+{ lib, ... }: {
+  imports = [ ./hardware-configuration.nix ];
+  notenix.preset                         = lib.mkForce "desktop";
+  notenix.disk.device                    = lib.mkForce "/dev/nvme0n1";
+  notenix.system.autoupgrade.flakeRepo   = lib.mkForce "path:/etc/nixos";
+  notenix.system.autoupgrade.hostName    = lib.mkForce "notenix";
+  notenix.system.install.hostName        = lib.mkForce "mymachine";
+  notenix.system.install.userName        = lib.mkForce "primoz";
+  notenix.system.install.userDescription = lib.mkForce "Primoz";
+  notenix.system.install.timeZone        = lib.mkForce "Europe/Ljubljana";
+  notenix.system.install.locale          = lib.mkForce "en_US.UTF-8";
+  notenix.system.install.keyboardLayout  = lib.mkForce "si";
+  system.stateVersion                    = "25.11";
+}
+EOF
+```
+
+### Step 4 — Generate hardware config and install
+
+```bash
+# Generate hardware-configuration.nix for the target system
+sudo nixos-generate-config --root /mnt
+
+# Install using your machine.nix as an additional module
+# Option A: Pass it directly to nixos-install (works with newer nixos-install-tools)
+sudo nixos-install --no-root-passwd \
+  --flake .#notenix
+```
+
+> **Note:** `--extra-config` passes your `machine.nix` as an additional module on top of the notenix flake configuration. This is how your custom settings (hostname, user, disk device, etc.) get applied.
+
+### Step 5 — Reboot
+
+```bash
+sudo reboot
+```
+
+---
+
 ## Troubleshooting
 
 **The installer command fails immediately** — your network may not be up yet. Try `ping 1.1.1.1` and wait a moment.
@@ -106,3 +201,15 @@ Your desktop will appear after a short setup. On the first login, any apps decla
 **Wi-Fi is not listed in `nmtui`** — some Wi-Fi chips need proprietary firmware. Connect via ethernet for installation and enable Wi-Fi after.
 
 **Boot menu key not working** — try holding the key immediately after pressing the power button, before the manufacturer logo appears.
+
+**NVMe drive not detected** — the live ISO may not auto-load NVMe drivers. Try:
+```bash
+sudo modprobe nvme
+sudo modprobe ahci
+lsblk
+```
+If the drive still doesn't appear, check BIOS settings — Intel RST/RAID mode hides NVMe from Linux. Switch SATA mode from RAID to AHCI in BIOS.
+
+**Disko fails with "experimental Nix feature" error** — add `--extra-experimental-features "nix-command flakes"` to the `nix run` command.
+
+**Disko fails with "disk-config.nix" usage error** — ensure you're passing the config file path correctly: `-- --mode disko --root-mountpoint /mnt nvme-disk.nix` (note the `--` separator before disko options).

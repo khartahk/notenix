@@ -64,10 +64,20 @@ pkgs.writeShellApplication {
 
     # ── 2. Timezone ───────────────────────────────────────────────────
     TZ_ARGS=()
+    TZ_DEFAULT="Europe/Ljubljana"
+    seen_tz=0
     while IFS= read -r tz; do
-      TZ_ARGS+=("$tz" "" "off")
+      if [ "$tz" = "$TZ_DEFAULT" ]; then
+        TZ_ARGS+=("$tz" "" "on")
+        seen_tz=1
+      else
+        TZ_ARGS+=("$tz" "" "off")
+      fi
     done < <(grep -v '^#' "${pkgs.tzdata}/share/zoneinfo/zone1970.tab" \
              | awk -F'\t' '{print $3}' | sort -u)
+    if [ "$seen_tz" -eq 0 ]; then
+      TZ_ARGS=("$TZ_DEFAULT" "" "on" "''${TZ_ARGS[@]}")
+    fi
 
     TIMEZONE=$(pick "Select timezone" \
       --radiolist "Use arrow keys + Space to select, Enter to confirm." \
@@ -75,13 +85,23 @@ pkgs.writeShellApplication {
       "''${TZ_ARGS[@]}")
 
     # ── 3. Locale ─────────────────────────────────────────────────────
+    LOCALE_DEFAULT="sl_SI.UTF-8"
     LOCALE_ARGS=()
+    seen_locale=0
     while IFS= read -r entry; do
       loc=$(echo "$entry" | awk '{print $1}' | sed 's|/.*||')
       [[ "$loc" == *"UTF-8"* ]] || continue
-      LOCALE_ARGS+=("$loc" "" "off")
+      if [ "$loc" = "$LOCALE_DEFAULT" ]; then
+        LOCALE_ARGS+=("$loc" "" "on")
+        seen_locale=1
+      else
+        LOCALE_ARGS+=("$loc" "" "off")
+      fi
     done < <(grep -v '^#' "${pkgs.glibcLocales}/share/i18n/SUPPORTED" \
              | tr ' ' '\n' | grep -v '^$' | grep -vF "\\")
+    if [ "$seen_locale" -eq 0 ]; then
+      LOCALE_ARGS=("$LOCALE_DEFAULT" "" "on" "''${LOCALE_ARGS[@]}")
+    fi
 
     LOCALE=$(pick "Select default locale" \
       --radiolist "UTF-8 locales only. This sets the language/format for the whole system." \
@@ -89,7 +109,9 @@ pkgs.writeShellApplication {
       "''${LOCALE_ARGS[@]}")
 
     # ── 4. Keyboard layout ────────────────────────────────────────────
+    KB_DEFAULT="si"
     KB_ARGS=()
+    seen_kb=0
     in_layout=0
     while IFS= read -r line; do
       if echo "$line" | grep -q "^! layout"; then in_layout=1; continue; fi
@@ -97,9 +119,17 @@ pkgs.writeShellApplication {
       if [ "$in_layout" -eq 1 ] && [ -n "$line" ]; then
         code=$(echo "$line" | awk '{print $1}')
         desc=$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^ *//')
-        KB_ARGS+=("$code" "$desc" "off")
+        if [ "$code" = "$KB_DEFAULT" ]; then
+          KB_ARGS+=("$code" "$desc" "on")
+          seen_kb=1
+        else
+          KB_ARGS+=("$code" "$desc" "off")
+        fi
       fi
     done < "${pkgs.xkeyboard_config}/share/X11/xkb/rules/evdev.lst"
+    if [ "$seen_kb" -eq 0 ]; then
+      KB_ARGS=("$KB_DEFAULT" "Slovenian" "on" "''${KB_ARGS[@]}")
+    fi
 
     KBLAYOUT=$(pick "Select keyboard layout" \
       --radiolist "Keyboard layout for console and graphical session." \
@@ -108,8 +138,9 @@ pkgs.writeShellApplication {
 
     # ── 5. Preset ─────────────────────────────────────────────────────
     PRESET=$(pick "Configuration preset" \
-      --menu "Choose the default feature set for this machine:" 12 65 2 \
+      --menu "Choose the default feature set for this machine:" 12 65 3 \
       "desktop" "Full GNOME desktop (Flatpak, sound, bluetooth, printing)" \
+      "desktop-lite" "Cinnamon desktop (lighter GUI, still with apps, sound, bluetooth, printing)" \
       "minimal" "Minimal headless system (no desktop, essentials only)")
 
     # ── 6. Hostname ───────────────────────────────────────────────────

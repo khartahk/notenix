@@ -280,6 +280,7 @@ class ChannelWindow(Adw.Window):
         # All tabs defined in default.yaml are rendered generically here.
         # _tab_rows: { tab_id: { item_key_or_id: SwitchRow } }
         self._tab_rows: dict[str, dict[str, Adw.SwitchRow]] = {}
+        self._dynamic_tab_pages: dict[str, tuple[Adw.PreferencesPage, dict]] = {}
 
         extensions_state = set(backend.read_extensions())
         apps_state       = set(backend.read_apps())
@@ -345,7 +346,10 @@ class ChannelWindow(Adw.Window):
                         self._ext_source_rows[item["id"]] = (combo, src_ids, item)
 
             self._tab_rows[tab_id] = rows
+            self._dynamic_tab_pages[tab_id] = (page, tab)
             self._stack.add_titled(page, tab_id, _(tab["title"]))
+
+        self._sync_preset_tabs(status.preset)
 
         # ── Apply (header right) + Save (action bar) ──────────────────────
         self._apply_btn = Gtk.Button(label=_("Install"))
@@ -688,6 +692,15 @@ class ChannelWindow(Adw.Window):
         "minimal":      "none",
     }
 
+    def _sync_preset_tabs(self, preset: str | None) -> None:
+        """Show catalog tabs that apply to the selected preset."""
+        for tab_id, (page, tab) in self._dynamic_tab_pages.items():
+            allowed_presets = tab.get("presets")
+            visible = not allowed_presets or preset in allowed_presets
+            self._stack.get_page(page).set_visible(visible)
+            if not visible and self._stack.get_visible_child_name() == tab_id:
+                self._stack.set_visible_child_name("channel")
+
     def _on_preset_changed(self, row, _param) -> None:
         idx = row.get_selected()
         new_preset = self._preset_ids[idx] if idx < len(self._preset_ids) else None
@@ -703,6 +716,8 @@ class ChannelWindow(Adw.Window):
         else:
             self._op_now_btn.set_sensitive(True)
             self._op_row.set_subtitle(_("Applies to manual Save and the automatic upgrade service"))
+        self._current_preset = new_preset
+        self._sync_preset_tabs(new_preset)
 
     def _channel_selection(self) -> tuple[str, str, str, str]:
         """Return (channel, operation, preset, flake_url) from current UI state.
@@ -826,17 +841,21 @@ class ChannelWindow(Adw.Window):
         channel, op, preset, flake_url = self._channel_selection()
         payload: dict = {}
         for tab in backend.TAB_CATALOG:
+            allowed_presets = tab.get("presets")
+            if allowed_presets and preset not in allowed_presets:
+                continue
             rows = self._tab_rows.get(tab["id"], {})
             if tab["type"] == "bool_options":
                 payload[tab["id"]] = {key: row.get_active() for key, row in rows.items()}
             else:
                 payload[tab["id"]] = [k for k, row in rows.items() if row.get_active()]
         ext_sources: dict[str, str] = {}
-        for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
-            src_key = item.get("nix_source_key")
-            if src_key:
-                idx = combo.get_selected()
-                ext_sources[src_key] = src_ids[idx] if idx < len(src_ids) else src_ids[0]
+        if "extensions" in payload:
+            for ext_id, (combo, src_ids, item) in self._ext_source_rows.items():
+                src_key = item.get("nix_source_key")
+                if src_key:
+                    idx = combo.get_selected()
+                    ext_sources[src_key] = src_ids[idx] if idx < len(src_ids) else src_ids[0]
         return {**payload, "machine": self._machine_settings(),
                 "ext_sources": ext_sources,
                 "ext_hashes":  dict(self._ext_source_hashes),

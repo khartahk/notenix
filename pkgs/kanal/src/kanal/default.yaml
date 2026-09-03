@@ -6,6 +6,7 @@
 #   id          - internal identifier; matches the GTK stack child name
 #   title       - sidebar label
 #   description - shown as group description
+#   presets     - optional list of presets for which the tab is shown and saved
 #   type        - storage model:
 #                   bool_options  -- each item is a separate bool NixOS option
 #                   list_option   -- all checked item ids written as one Nix list
@@ -164,6 +165,7 @@ tabs:
   - id: extensions
     title: Extensions
     description: "Enabled on next rebuild (only applies to GNOME desktop preset)"
+    presets: [ desktop ]
     type: list_option
     nix_key: notenix.desktop.gnome.extensions
     save_cmd: set-extensions
